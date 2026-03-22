@@ -1,0 +1,2 @@
+"""Bot subclass, on_ready, and global error handler."""
+

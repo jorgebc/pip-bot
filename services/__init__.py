@@ -1,0 +1,2 @@
+"""Business logic services package, decoupled from Discord."""
+
