@@ -1,1 +1,2 @@
-"""Business logic services package, decoupled from Discord."""\n
+"""Business logic services package, decoupled from Discord."""
+

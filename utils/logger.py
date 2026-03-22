@@ -1,1 +1,2 @@
-"""Centralized logger factory and logging configuration."""\n
+"""Centralized logger factory and logging configuration."""
+

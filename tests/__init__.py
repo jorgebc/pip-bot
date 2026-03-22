@@ -1,1 +1,2 @@
-"""Test package root for pytest."""\n
+"""Test package root for pytest."""
+

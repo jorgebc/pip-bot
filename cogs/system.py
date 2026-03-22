@@ -1,1 +1,2 @@
-"""System commands: /ping, /status, /uptime."""\n
+"""System commands: /ping, /status, /uptime."""
+

@@ -1,1 +1,2 @@
-"""Action dispatcher package for external agent commands."""\n
+"""Action dispatcher package for external agent commands."""
+

@@ -1,1 +1,2 @@
-"""Reads .env and exposes a typed Settings object."""\n
+"""Reads .env and exposes a typed Settings object."""
+

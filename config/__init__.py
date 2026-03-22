@@ -1,1 +1,2 @@
-"""Configuration package for env loading and validation."""\n
+"""Configuration package for env loading and validation."""
+

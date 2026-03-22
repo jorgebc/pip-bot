@@ -1,1 +1,2 @@
-"""Email service package: compose and send reports."""\n
+"""Email service package: compose and send reports."""
+

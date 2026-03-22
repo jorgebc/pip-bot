@@ -1,1 +1,2 @@
-"""Utilities package with pure, stateless helper functions."""\n
+"""Utilities package with pure, stateless helper functions."""
+

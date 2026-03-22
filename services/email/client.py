@@ -1,1 +1,2 @@
-"""Email composition and sending utilities (smtp)."""\n
+"""Email composition and sending utilities (smtp)."""
+

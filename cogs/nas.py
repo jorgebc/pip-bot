@@ -1,1 +1,2 @@
-"""NAS-related commands: /nas status, /nas list, /nas download."""\n
+"""NAS-related commands: /nas status, /nas list, /nas download."""
+
