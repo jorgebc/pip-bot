@@ -26,6 +26,13 @@ High-level architecture (big picture)
 - utils/: Pure helpers (logger factory, etc.).
 - scripts/: Operational shell scripts for RPi deployment (systemd + deploy.sh).
 
+External agent model
+- pip-bot contains no AI. It is a bridge: external agents (running on cloud platforms) do
+  the work, compose a report, and send it to pip-bot via a private Discord channel.
+- pip-bot receives the message, validates the sender, and executes the action (email, download, etc.).
+- Agents are independent. They are not part of this codebase.
+- See README Section 11 for the full message protocol.
+
 Key conventions (repo-specific)
 - One responsibility per file: move heavy logic (network/filesystem) into services/; cogs only format and call services.
 - Action registry: register new external-agent actions in services/actions/registry.py; avoid touching core bot or cogs.
@@ -37,18 +44,29 @@ Key conventions (repo-specific)
 - Commits: follow Conventional Commits format: type(scope): short description (e.g., feat(nas): add /nas download).
 - ARM64 (RPi) caution: confirm linux_aarch64 wheels for new dependencies before adding them.
 
+Project tracking — CHANGELOG and ROADMAP
+- CHANGELOG.md: updated on every merged PR. Add a bullet under [Unreleased] describing what changed.
+  Format: "- Added / Fixed / Changed: <description>"
+  Example: "- Added: /ping command in cogs/system.py"
+- ROADMAP.md: check off milestones as they are completed. Do not add new milestones without
+  discussing with the project owner first.
+- When starting a session: read CHANGELOG.md [Unreleased] → Next to know what to implement.
+- When closing a PR: update CHANGELOG.md and check off completed milestones in ROADMAP.md.
+- Version: bump pyproject.toml version on every completed phase (poetry version minor)
+    or on every fix (poetry version patch). Never bump MAJOR without explicit instruction.
+    Run the bump in the same commit that closes the phase PR.
+
 Files to prioritize in Copilot prompts
 - README.md (architecture & conventions)
+- ROADMAP.md (current phase and next milestone)
+- CHANGELOG.md (what is done and what is next)
 - pyproject.toml (deps & dev deps)
 - .env.example
 - bot/, cogs/, services/, config/, utils/, tests/
 
-AI assistant configs checked
-- No CLAUDE.md, .cursorrules, AGENTS.md, .windsurfrules, CONVENTIONS.md, or other assistant-config files found in the repo.
-
 Guidance for Copilot sessions
 - When implementing features: provide code + tests for services/ (mock external I/O) + docstrings + a Conventional Commit message.
 - For refactors: preserve "one responsibility per file" and keep cogs minimal.
-- For PRs: include unit tests for changed services and an updated README snippet if public API changes.
+- For PRs: include unit tests for changed services, update CHANGELOG.md [Unreleased], check off completed milestones in ROADMAP.md.
 
 If you want this expanded (CI steps, lint rules, or MCP server configuration), tell me which area to cover.

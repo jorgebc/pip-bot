@@ -48,7 +48,7 @@ External AI Agent (runs anywhere: PC, cloud, cron job...)
         ▼
   pip-bot — running on Raspberry Pi
         │
-        ├──▶ NAS (interact with local NAS via HTTP/RPC)
+        ├──▶ NAS (download torrent, list files)
         ├──▶ Email (send report)
         ├──▶ Local filesystem (save results)
         └──▶ Discord notification (reply with results)
@@ -71,26 +71,26 @@ External AI Agent (runs anywhere: PC, cloud, cron job...)
 
 ### Development — PC
 
-| Item | Details |
-|---|---|
-| OS | Any (Windows/Linux/macOS) |
-| IDE | IntelliJ IDEA (with Python plugin) |
+| Item | Details                                         |
+|---|-------------------------------------------------|
+| OS | Any (Windows/Linux/macOS)                       |
+| IDE | IntelliJ IDEA (with Python plugin)              |
 | AI in IDE | JetBrains AI Assistant or GitHub Copilot plugin |
-| AI in CLI | Aider (`pip install aider-chat`) |
-| Python | 3.11+ |
-| Dependency manager | Poetry |
+| AI in CLI | Copilot cli                                     |
+| Python | 3.11+                                           |
+| Dependency manager | Poetry                                          |
 
 ### Production — Raspberry Pi
 
-| Item | Details                                            |
-|---|----------------------------------------------------|
-| Hardware | Raspberry Pi 4 Model B — 4 cores, 2 GB RAM         |
-| OS | Debian GNU/Linux 12 (Bookworm) — 64-bit            |
-| Kernel | `6.12.62+rpt-rpi-v8 aarch64`                       |
+| Item | Details |
+|---|---|
+| Hardware | Raspberry Pi 4 Model B — 4 cores, 4 GB RAM |
+| OS | Debian GNU/Linux 12 (Bookworm) — 64-bit |
+| Kernel | `6.12.62+rpt-rpi-v8 aarch64` |
 | Python | 3.11+ (verify with `python3 --version` on the RPi) |
-| Dependency manager | Poetry (installed on RPi)                          |
-| Process manager | `systemd`                                          |
-| Log management | `RotatingFileHandler` + `journalctl`               |
+| Dependency manager | Poetry (installed on RPi) |
+| Process manager | `systemd` |
+| Log management | `RotatingFileHandler` + `journalctl` |
 
 > **Important — ARM64 compatibility:** always verify that all dependencies in `pyproject.toml` have ARM64 wheels available before adding them. Use `pip index versions <package>` or check PyPI for `linux_aarch64` wheel availability.
 
@@ -167,7 +167,9 @@ pip-bot/
 ├── .gitignore
 ├── pyproject.toml
 ├── poetry.lock
-├── pip-bot.service           # systemd unit file
+├── pip-bot.service         # systemd unit file
+├── CHANGELOG.md            # Updated on every merged PR
+├── ROADMAP.md              # Phase-based project plan with completion criteria
 └── README.md
 ```
 
@@ -197,6 +199,15 @@ Responds with `Pong!` and current latency. Used to verify the bot is alive.
 ### `/status`
 Returns a system health summary for the Raspberry Pi: CPU usage, RAM usage, disk usage, and system uptime. Uses Python's `psutil` library.
 
+### `/nas status`
+Returns the current state of the NAS: whether it is reachable on the local network, available disk space, and the number of active download tasks.
+
+### `/nas list`
+Lists the items currently available on the NAS, paginated (max 10 per page).
+
+### `/nas download <name>`
+Adds a download task to the NAS queue (via Transmission RPC or equivalent). The bot confirms the task was received or reports an error.
+
 ### `/help`
 Auto-generated command listing all available commands with a one-line description. Built using discord.py's built-in help system.
 
@@ -218,7 +229,6 @@ These are **not** autonomous parallel agents. They are **prompt modes** — stru
 | **Testing** | After implementation is reviewed | "Write `pytest` + `pytest-asyncio` tests for this service. Focus on: happy path, error cases, and edge cases. Do not test Discord cog methods directly." |
 | **Documentation** | Before committing | "Write a docstring for this module/class/function following Google style" |
 | **Deploy** | Preparing a release | "Generate a `systemd` unit file and a `deploy.sh` script for this project. Target: Raspberry Pi 4, Debian Bookworm, aarch64, Poetry environment" |
-
 
 ## 8. Commit Convention
 
@@ -289,7 +299,7 @@ pytest-asyncio
 poetry run pytest
 
 # With coverage report
-poetry run pytest --cov=pip_bot --cov-report=term-missing
+poetry run pytest --cov=. --cov-report=term-missing
 
 # Single module
 poetry run pytest tests/services/nas/
@@ -372,11 +382,40 @@ This is the core integration point for Phase 2+. External agents communicate wit
 - Easy to audit: all agent requests are logged in one place
 - Simple permission model: only you (and bots you authorise) can write to it
 
+### Message protocol (Phase 2 — to be finalised)
+
+External agents send a JSON-formatted message to the actions channel:
+
+```json
+{
+  "action": "nas.download",
+  "params": {
+    "magnet": "magnet:?xt=urn:btih:...",
+    "title": "Title"
+  },
+  "agent": "search-agent",
+  "request_id": "uuid-v4"
+}
+```
+
+The bot responds in the same channel (or a results channel) with:
+
+```json
+{
+  "request_id": "uuid-v4",
+  "status": "ok",
+  "message": "Download queued: Title"
+}
+```
+
 ### Action registry (`services/actions/registry.py`)
 
 Maps action names to service handler functions. Adding a new capability means registering a new action — no changes to the core bot or cogs.
 
 ```
+"nas.download"      → services.nas.client.add_download()
+"nas.list"          → services.nas.client.list_files()
+"email.send_report" → services.email.client.send()
 "system.status"     → services.system.get_status()
 ```
 
@@ -386,21 +425,21 @@ Maps action names to service handler functions. Adding a new capability means re
 - The bot validates that the message author is on an allowlist defined in `.env`
 - No cryptographic signing in Phase 1 — not needed for a single-owner private server
 
----
-
 ## 12. Roadmap
 
-### Phase 1 — Foundation (current)
+The full roadmap with phases, milestones, and completion criteria lives in [`ROADMAP.md`](./ROADMAP.md).
 
-- [ ] Development environment: Python 3.11+, Poetry, IntelliJ + Aider
-- [ ] GitHub repository: README, `.gitignore`, `.env.example`, initial structure
-- [ ] Core bot: client, cog loader, global error handler, logging
-- [ ] Cog: `system.py` — `/ping`, `/status`, `/help`
-- [ ] Service + Cog: `nas/` — `/nas status`, `/nas list`, `/nas download`
-- [ ] Service: `email/` — send plain text or HTML reports
-- [ ] Tests for `services/nas/`, `services/email/`, and `utils/`
-- [ ] Deployment on Raspberry Pi with `systemd`
-- [ ] `deploy.sh` script for one-command updates
+**Summary:**
+
+| Phase | Goal | Status |
+|---|---|---|
+| 1 | Bot core + Raspberry Pi control | 🔄 In progress |
+| 2 | NAS control + torrent downloads | ⏳ Pending |
+| 3 | External agent protocol — Discord → Email bridge | ⏳ Pending |
+| 4 | Movie Search Agent (external repo) | ⏳ Pending |
+| 5 | Job Search + Rental Search agents | ⏳ Pending |
+
+> Update `ROADMAP.md` when completing milestones. Update this table when closing a phase.
 
 ---
 
@@ -410,6 +449,10 @@ Maps action names to service handler functions. Adding a new capability means re
 |---|---|---|
 | `DISCORD_TOKEN` | ✅ | Bot token from Discord Developer Portal |
 | `DISCORD_GUILD_ID` | ✅ | Your server ID (for fast slash command registration in dev) |
+| `NAS_HOST` | Phase 1 | Local IP of the NAS (e.g., `192.168.1.100`) |
+| `NAS_PORT` | Phase 1 | Transmission RPC port (default: `9091`) |
+| `NAS_USER` | Phase 1 | Transmission username |
+| `NAS_PASSWORD` | Phase 1 | Transmission password |
 | `LOG_LEVEL` | Optional | `DEBUG`, `INFO`, `WARNING` (default: `INFO`) |
 
 > Copy `.env.example` to `.env` and fill in your values. **Never commit `.env` to Git.**
@@ -427,3 +470,11 @@ This project is developed primarily by AI agents under human supervision. When g
 5. **Logging over print** — use `utils/logger.py` to obtain a logger; never use `print()` in production code
 6. **Commit with Conventional Commits** format — see Section 8
 7. **ARM64 compatibility check** — before adding any dependency, confirm it has `linux_aarch64` wheels on PyPI
+8. **Update CHANGELOG.md on every PR** — add an entry under `[Unreleased]` describing what changed
+9. **Update ROADMAP.md when completing a milestone** — check the box and update the `[Unreleased]` → Next section in CHANGELOG
+10. **Version bump** — update the version in `pyproject.toml` following Semantic Versioning:
+  - `PATCH` (0.1.x): bug fix or minor adjustment, no new functionality
+  - `MINOR` (0.x.0): new functionality added — bump on every completed roadmap phase
+  - `MAJOR` (x.0.0): breaking change to the external agent protocol or core architecture
+  - Always update the version in the same commit that closes the phase PR
+  - Bump the version with: `poetry version patch` / `poetry version minor` / `poetry version major`
