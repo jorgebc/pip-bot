@@ -24,7 +24,10 @@ Once the next milestone is identified, implement it following this exact sequenc
 4. Run linter and tests before finishing:
    - poetry run ruff check .
    - poetry run pytest
-5. Update CHANGELOG.md: add a bullet under [Unreleased] describing what was added or changed.
+5. Update CHANGELOG.md:
+   - Add a bullet under [Unreleased] describing what was added or changed
+   - Update the version number in the [Unreleased] header to match the new version in pyproject.toml
+     Example: [Unreleased] → [0.2.0] — YYYY-MM-DD
 6. Update ROADMAP.md: check off the completed milestone.
 7. Bump the version in pyproject.toml:
    - New functionality → poetry version minor
@@ -33,5 +36,7 @@ Once the next milestone is identified, implement it following this exact sequenc
 8. Propose a single Conventional Commits message for the final commit:
    - Format: type(scope): short description
    - Include CHANGELOG and ROADMAP updates in the same commit
+   - After committing, the branch is ready to push: git push origin <branch-name>
+   - Stop and wait for confirmation before pushing
 
 Do not open a PR. Do not merge. Stop after proposing the commit message and wait for confirmation.
