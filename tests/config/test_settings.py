@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from config.settings import ConfigError, Settings, get_settings, reset_settings
+from config import ConfigError, Settings, get_settings, reset_settings
 
 
 @pytest.fixture(autouse=True)

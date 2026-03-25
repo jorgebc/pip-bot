@@ -164,12 +164,13 @@ class TestGetLogger:
         content = log_file.read_text()
         assert "test message" in content
 
-    @patch.dict(os.environ, {"LOG_LEVEL": "INFO"}, clear=True)
-    def test_get_logger_invalid_log_level_defaults_to_info(self, temp_logs_dir):
-        """Test that invalid LOG_LEVEL defaults to INFO."""
-        with patch.dict(os.environ, {"LOG_LEVEL": "INVALID"}, clear=True):
-            logger = get_logger("test_module")
-            assert logger.level == logging.INFO
+    @patch.dict(os.environ, {"LOG_LEVEL": "INVALID"}, clear=True)
+    def test_get_logger_invalid_log_level_raises_error(self, temp_logs_dir):
+        """Test that invalid LOG_LEVEL raises ConfigError."""
+        from utils.validators import ConfigError
+        
+        with pytest.raises(ConfigError, match="LOG_LEVEL must be one of"):
+            get_logger("test_module")
 
     @patch.dict(os.environ, {}, clear=True)
     def test_get_logger_missing_log_level_defaults_to_info(self, temp_logs_dir):
