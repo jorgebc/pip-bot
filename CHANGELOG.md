@@ -13,8 +13,30 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ### Changed
 
 ### Next
-- Implement bot core: Discord client connection, entry point
-- Implement `/ping` slash command
+- Implement `/ping` slash command in cogs/system.py
+- Implement `/status` slash command for system health checks
+
+---
+
+## [0.2.0] — 2026-03-25
+
+### Added
+- `bot/client.py` — PipBot Discord client subclass with:
+  * Customized intents (message_content, guilds enabled)
+  * on_ready event handler for logging startup status and syncing slash commands to guild
+  * setup_hook for future cog loading
+  * Proper error handling for command sync failures
+- `bot/__init__.py` — Exports PipBot class
+- `bot/__main__.py` — Entry point for running bot with `python -m bot`
+  * Loads settings, creates bot instance, handles startup and errors
+- Unit tests for bot/client.py:
+  * 7 comprehensive tests covering initialization, intents, on_ready behavior, and setup_hook
+  * All tests passing with proper mocking of Discord API calls
+  * Test coverage includes edge cases (missing user handling)
+
+### Changed
+- ROADMAP.md: Marked Phase 1 "bot/client.py + bot/__init__.py" milestone as completed
+- Version bumped to 0.2.0 (minor version for feature completion)
 
 ---
 
