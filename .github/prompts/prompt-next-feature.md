@@ -1,7 +1,12 @@
-Read README.md, ROADMAP.md, CHANGELOG.md, and .github/copilot-instructions.md before doing anything.
-
-Identify the next pending milestone in ROADMAP.md — the first unchecked item in the current active phase.
-If the current phase is complete, state it clearly and ask for confirmation before moving to the next phase.
+Before doing anything:
+1. Ensure you are on the main branch: git checkout main
+2. Pull the latest changes: git pull origin main
+3. Read README.md, ROADMAP.md, CHANGELOG.md, and .github/copilot-instructions.md
+4. Identify the next pending milestone in ROADMAP.md — the first unchecked item in the current active phase.
+5. Create a new branch with the appropriate prefix:
+   - New functionality → git checkout -b feat/<short-description>
+   - Bug fix → git checkout -b fix/<short-description>
+   - Use kebab-case, keep it short and descriptive (e.g., feat/bot-core, fix/nas-timeout)
 
 Once the next milestone is identified, implement it following this exact sequence:
 
