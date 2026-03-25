@@ -9,6 +9,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Next
+- Implement bot core: Discord client connection, entry point
+- Implement `/ping` slash command
+
+---
+
+## [0.1.1] — 2026-03-25
+
+### Added
 - `utils/logger.py` — centralized logger factory with rotating file handlers
   * Console handler for development (timestamp, level, module, message)
   * RotatingFileHandler for production (5MB per file, 3 backups, ~15MB max)
@@ -30,12 +42,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - `pyproject.toml`: Fixed TOML syntax and added tool.poetry.packages configuration
 - `config/__init__.py`: Exported Settings, get_settings, reset_settings, ConfigError
 - `utils/__init__.py`: Exported get_logger
-
----
-
-### Next
-- Implement bot core: Discord client connection, entry point
-- Implement `/ping` slash command
+- `ROADMAP.md`: Marked logger and settings milestones as completed (Phase 1)
 
 ---
 

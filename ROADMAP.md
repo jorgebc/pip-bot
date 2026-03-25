@@ -13,8 +13,8 @@ Each phase builds on the previous one and has a clear, verifiable completion cri
 
 ### Milestones
 
-- [ ] `utils/logger.py` — rotating file logger factory
-- [ ] `config/settings.py` — typed settings loaded from `.env`
+- [x] `utils/logger.py` — rotating file logger factory
+- [x] `config/settings.py` — typed settings loaded from `.env`
 - [ ] `bot/client.py` + `bot/__init__.py` — bot connects to Discord, logs on_ready
 - [ ] `cogs/system.py` — `/ping`, `/status` (CPU, RAM, disk, uptime)
 - [ ] `cogs/system.py` — `/help` auto-generated command list
