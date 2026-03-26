@@ -13,8 +13,35 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ### Changed
 
 ### Next
-- Implement `/ping` slash command in cogs/system.py
-- Implement `/status` slash command for system health checks
+
+---
+
+## [0.3.0] — 2026-03-26
+
+### Added
+- `services/system.py` — system health monitoring service with:
+  * `get_system_status()` function collecting CPU, RAM, disk usage, and uptime
+  * `SystemStatus` dataclass for structured metrics
+  * Helper function `_format_timedelta()` for human-readable uptime strings
+  * Proper error handling and logging
+- `cogs/system.py` — system commands cog with:
+  * `/ping` slash command showing bot latency
+  * `/status` slash command displaying system health metrics in a rich embed
+  * Comprehensive error handling with user-friendly messages
+  * `setup()` function for cog loading
+- Unit tests for services/system.py:
+  * 10 comprehensive tests covering all functions and edge cases
+  * Mocking of psutil calls to avoid platform-specific issues
+  * Tests for timedelta formatting, metric collection, and error handling
+- Unit tests for cogs/system.py:
+  * 8 comprehensive tests for both commands and cog initialization
+  * Tests for latency variations, error handling, and cog loading
+- Updated `bot/client.py`:
+  * Implemented `setup_hook()` to load the SystemCog automatically on bot startup
+  * Added proper error handling for cog loading failures
+
+### Changed
+- ROADMAP.md: Marked Phase 1 "/ping and /status commands" milestone as completed
 
 ---
 

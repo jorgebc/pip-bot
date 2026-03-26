@@ -49,5 +49,10 @@ class PipBot(commands.Bot):
     async def setup_hook(self) -> None:
         """Load cogs when bot is initialized."""
         logger.debug("Setting up bot cogs...")
-        # Cog loading will be implemented in Phase 1 Step 3
+        try:
+            await self.load_extension("cogs.system")
+            logger.info("Successfully loaded all cogs")
+        except Exception as e:
+            logger.error(f"Failed to load cogs: {e}", exc_info=True)
+            raise
 
