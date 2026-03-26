@@ -16,6 +16,22 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.5.0] — 2026-03-26
+
+### Added
+- `pip-bot.service` — systemd unit file for running bot as a service on Raspberry Pi with:
+  * Automatic startup on system boot via `systemctl enable`
+  * Automatic restart on failure (10-second backoff)
+  * User isolation (runs as `pi` user, not root)
+  * Proper working directory and environment setup
+  * Journal logging integration for easy debugging via `journalctl`
+  * Unbuffered Python output for real-time log capture
+
+### Changed
+- ROADMAP.md: Marked Phase 1 "systemd unit file" milestone as completed
+
+---
+
 ## [0.4.0] — 2026-03-26
 
 ### Added
