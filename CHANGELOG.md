@@ -16,6 +16,24 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.4.0] — 2026-03-26
+
+### Added
+- `cogs/system.py` — `/help` command with:
+  * Auto-discovery of all available bot commands from loaded cogs
+  * Fallback to hardcoded System commands when no cogs found
+  * Description truncation at 80 characters for proper embed formatting
+  * Ephemeral responses (only visible to command invoker)
+  * Comprehensive error handling with user-friendly messages
+- Unit tests for `/help` command:
+  * 5 comprehensive test methods covering success case, cog discovery, fallback behavior, error handling, and description truncation
+  * All tests passing with proper mocking of bot and interaction objects
+
+### Changed
+- ROADMAP.md: Marked Phase 1 "/help auto-generated command list" milestone as completed
+
+---
+
 ## [0.3.0] — 2026-03-26
 
 ### Added

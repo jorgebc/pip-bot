@@ -158,6 +158,142 @@ class TestSystemCogStatus:
         assert interaction.followup.send.call_count >= 1
 
 
+class TestSystemCogHelp:
+    """Test the /help command via the callback method."""
+
+    @pytest.mark.asyncio
+    async def test_help_command_success(self):
+        """Test help callback returns commands in embed."""
+        bot = MagicMock(spec=discord.ext.commands.Bot)
+        bot.cogs = {}
+
+        interaction = AsyncMock(spec=discord.Interaction)
+        interaction.response.send_message = AsyncMock()
+
+        cog = SystemCog(bot)
+        await cog.help.callback(cog, interaction)
+
+        # Verify response was sent
+        interaction.response.send_message.assert_called_once()
+        call_args = interaction.response.send_message.call_args
+        embed = call_args.kwargs.get("embed")
+
+        assert isinstance(embed, discord.Embed)
+        assert embed.title == "📚 Bot Commands"
+        assert call_args.kwargs["ephemeral"] is True
+
+    @pytest.mark.asyncio
+    async def test_help_command_with_cogs(self):
+        """Test help command displays commands from cogs."""
+        bot = MagicMock(spec=discord.ext.commands.Bot)
+
+        # Create mock cog with commands
+        mock_cmd1 = MagicMock()
+        mock_cmd1.name = "ping"
+        mock_cmd1.description = "Check bot latency"
+
+        mock_cmd2 = MagicMock()
+        mock_cmd2.name = "status"
+        mock_cmd2.description = "Get system health metrics"
+
+        mock_cog = MagicMock()
+        mock_cog.get_app_commands.return_value = [mock_cmd1, mock_cmd2]
+
+        bot.cogs = {"System": mock_cog}
+
+        interaction = AsyncMock(spec=discord.Interaction)
+        interaction.response.send_message = AsyncMock()
+
+        cog = SystemCog(bot)
+        await cog.help.callback(cog, interaction)
+
+        # Verify response was sent
+        interaction.response.send_message.assert_called_once()
+        call_args = interaction.response.send_message.call_args
+        embed = call_args.kwargs.get("embed")
+
+        assert isinstance(embed, discord.Embed)
+        # Verify command names appear in embed
+        embed_dict = embed.to_dict()
+        embed_str = str(embed_dict)
+        assert "ping" in embed_str
+        assert "status" in embed_str
+
+    @pytest.mark.asyncio
+    async def test_help_command_fallback(self):
+        """Test help command fallback when no cogs found."""
+        bot = MagicMock(spec=discord.ext.commands.Bot)
+        bot.cogs = {}
+
+        interaction = AsyncMock(spec=discord.Interaction)
+        interaction.response.send_message = AsyncMock()
+
+        cog = SystemCog(bot)
+        await cog.help.callback(cog, interaction)
+
+        # Verify response was sent with fallback content
+        interaction.response.send_message.assert_called_once()
+        call_args = interaction.response.send_message.call_args
+        embed = call_args.kwargs.get("embed")
+
+        assert isinstance(embed, discord.Embed)
+        embed_dict = embed.to_dict()
+        # Fallback should include basic commands
+        assert any("ping" in str(field.get("value", "")).lower() 
+                   for field in embed_dict.get("fields", []))
+
+    @pytest.mark.asyncio
+    async def test_help_command_error_handling(self):
+        """Test help command error handling."""
+        bot = MagicMock(spec=discord.ext.commands.Bot)
+        bot.cogs = {"BadCog": MagicMock(get_app_commands=MagicMock(
+            side_effect=RuntimeError("Cog error")
+        ))}
+
+        interaction = AsyncMock(spec=discord.Interaction)
+        interaction.response.send_message = AsyncMock()
+
+        cog = SystemCog(bot)
+        await cog.help.callback(cog, interaction)
+
+        # Verify response was sent (either help or error message)
+        assert interaction.response.send_message.call_count >= 1
+
+    @pytest.mark.asyncio
+    async def test_help_command_long_description_truncation(self):
+        """Test that long command descriptions are truncated."""
+        bot = MagicMock(spec=discord.ext.commands.Bot)
+
+        # Create mock command with very long description
+        mock_cmd = MagicMock()
+        mock_cmd.name = "test"
+        mock_cmd.description = (
+            "This is a very long description that should be truncated "
+            "because it exceeds the maximum length of eighty characters"
+        )
+
+        mock_cog = MagicMock()
+        mock_cog.get_app_commands.return_value = [mock_cmd]
+
+        bot.cogs = {"Test": mock_cog}
+
+        interaction = AsyncMock(spec=discord.Interaction)
+        interaction.response.send_message = AsyncMock()
+
+        cog = SystemCog(bot)
+        await cog.help.callback(cog, interaction)
+
+        # Verify response was sent
+        interaction.response.send_message.assert_called_once()
+        call_args = interaction.response.send_message.call_args
+        embed = call_args.kwargs.get("embed")
+
+        # Verify truncation occurred
+        embed_dict = embed.to_dict()
+        field_value = embed_dict["fields"][0]["value"]
+        assert "..." in field_value  # Should have ellipsis from truncation
+
+
 class TestSystemCogInitialization:
     """Test SystemCog initialization."""
 
