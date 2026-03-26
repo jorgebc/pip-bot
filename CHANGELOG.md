@@ -16,6 +16,24 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.6.0] — 2026-03-26
+
+### Added
+- `scripts/deploy.sh` — one-command deployment script for Raspberry Pi with:
+  * Git pull from origin/main to update code
+  * Poetry dependency installation (--no-dev)
+  * Automatic systemd service restart
+  * Prerequisite verification (Poetry path, systemd availability)
+  * Color-coded logging for easy debugging
+  * Comprehensive error handling with helpful error messages
+  * Pre-deployment and post-deployment health checks
+  * Usage instructions and deployment summary
+
+### Changed
+- ROADMAP.md: Marked Phase 1 "deploy.sh" milestone as completed
+
+---
+
 ## [0.5.0] — 2026-03-26
 
 ### Added
