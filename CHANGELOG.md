@@ -12,7 +12,23 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+### Fixed
+
 ### Next
+
+---
+
+## [1.0.1] — 2026-03-26
+
+### Fixed
+- `.env.example` — Improved documentation with clear sections for Phase 1 variables, Discord setup instructions, and future phases
+- `scripts/setup_rpi.sh` — Enhanced error handling for Poetry installation and PATH issues:
+  * Better Poetry binary detection (check standard location before PATH)
+  * Improved error messages with manual recovery steps
+  * Better handling of Poetry not being in PATH after installation
+  * More detailed summary output with ASCII boxes and clearer next steps
+  * Better logging output for dependency installation
+- `scripts/deploy.sh` — Improved Poetry PATH handling to avoid failures when Poetry is not in PATH
 
 ---
 

@@ -96,8 +96,23 @@ install_dependencies() {
     log_info "Installing dependencies with Poetry..."
     cd "$PROJECT_DIR"
     
-    if ! $POETRY_BIN install --no-dev &> /dev/null; then
-        log_error "Poetry install failed"
+    POETRY_BIN="${HOME}/.local/bin/poetry"
+    
+    # Try the standard location first
+    if [ -f "$POETRY_BIN" ]; then
+        if ! $POETRY_BIN install --no-dev &> /dev/null; then
+            log_error "Poetry install failed"
+            exit 1
+        fi
+    # Fall back to poetry in PATH
+    elif command -v poetry &> /dev/null; then
+        if ! poetry install --no-dev &> /dev/null; then
+            log_error "Poetry install failed"
+            exit 1
+        fi
+    else
+        log_error "Poetry not found at: $POETRY_BIN"
+        echo "Please install Poetry: pip3 install poetry --user"
         exit 1
     fi
     
