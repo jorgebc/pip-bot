@@ -19,7 +19,7 @@ Each phase builds on the previous one and has a clear, verifiable completion cri
 - [x] `cogs/system.py` — `/ping`, `/status` (CPU, RAM, disk, uptime)
 - [x] `cogs/system.py` — `/help` auto-generated command list
 - [x] `systemd` unit file — bot runs 24/7 on RPi, restarts on failure
-- [ ] `scripts/deploy.sh` — one-command deploy from PC to RPi via git pull
+- [x] `scripts/deploy.sh` — one-command deploy from PC to RPi via git pull
 - [ ] `scripts/setup_rpi.sh` — first-time RPi setup script
 
 ---
