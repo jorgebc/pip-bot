@@ -16,6 +16,26 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.0] — 2026-03-26
+
+### Added
+- `scripts/setup_rpi.sh` — first-time Raspberry Pi setup automation with:
+  * Repository cloning from GitHub
+  * Poetry installation in user directory
+  * Python dependency installation (--no-dev)
+  * Environment configuration from .env.example
+  * Systemd service installation and enablement
+  * Prerequisite verification (git, Python 3, disk space)
+  * Color-coded logging and helpful progress messages
+  * Interactive prompts for confirmation on existing installations
+  * Comprehensive next-steps guidance with manual configuration instructions
+  * Support for custom repository URLs via REPO_URL environment variable
+
+### Changed
+- ROADMAP.md: Marked Phase 1 "setup_rpi.sh" milestone as completed (Phase 1 complete!)
+
+---
+
 ## [0.6.0] — 2026-03-26
 
 ### Added
