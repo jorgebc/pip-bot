@@ -1,4 +1,4 @@
-"""System commands: /ping, /status."""
+"""System commands: /ping, /status, /help."""
 
 import discord
 from discord import app_commands
@@ -96,6 +96,76 @@ class SystemCog(commands.Cog):
             try:
                 await interaction.followup.send(
                     f"❌ Error retrieving system status: {str(e)}",
+                    ephemeral=True,
+                )
+            except Exception as followup_error:
+                logger.error(
+                    f"Failed to send error response: {followup_error}", exc_info=True
+                )
+
+    @app_commands.command(name="help", description="Show all available commands")
+    async def help(self, interaction: discord.Interaction) -> None:
+        """
+        Display a comprehensive list of all available bot commands.
+
+        Shows all slash commands with their descriptions in a formatted embed.
+
+        Args:
+            interaction: Discord interaction object.
+        """
+        try:
+            # Create embed for command listing
+            embed = discord.Embed(
+                title="📚 Bot Commands",
+                description="All available commands:",
+                color=discord.Color.blue(),
+            )
+
+            # Collect commands by iterating through all cogs
+            cogs_with_commands = {}
+
+            for cog_name, cog in self.bot.cogs.items():
+                cog_commands = cog.get_app_commands()
+                if cog_commands:
+                    cogs_with_commands[cog_name] = cog_commands
+
+            # Format commands by cog
+            if cogs_with_commands:
+                for cog_name, cog_commands in cogs_with_commands.items():
+                    command_lines = []
+                    for cmd in cog_commands:
+                        description = cmd.description or "No description available"
+                        # Truncate long descriptions at 80 chars
+                        if len(description) > 80:
+                            description = description[:77] + "..."
+                        command_lines.append(f"`/{cmd.name}` — {description}")
+
+                    if command_lines:
+                        embed.add_field(
+                            name=cog_name,
+                            value="\n".join(command_lines),
+                            inline=False,
+                        )
+            else:
+                # Fallback: show basic built-in commands
+                embed.add_field(
+                    name="System",
+                    value=(
+                        "`/ping` — Check bot latency and status\n"
+                        "`/status` — Get system health metrics (CPU, RAM, disk, uptime)\n"
+                        "`/help` — Show all available commands"
+                    ),
+                    inline=False,
+                )
+
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            logger.debug("Responded to /help command")
+
+        except Exception as e:
+            logger.error(f"Error in /help command: {e}", exc_info=True)
+            try:
+                await interaction.response.send_message(
+                    f"❌ Error retrieving help: {str(e)}",
                     ephemeral=True,
                 )
             except Exception as followup_error:
