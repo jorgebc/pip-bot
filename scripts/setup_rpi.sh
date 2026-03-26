@@ -129,22 +129,32 @@ install_poetry() {
     
     POETRY_BIN="${HOME}/.local/bin/poetry"
     
+    # Check if Poetry is already installed in expected location
+    if [ -f "$POETRY_BIN" ]; then
+        log_info "Poetry already installed at: $POETRY_BIN"
+        return 0
+    fi
+    
+    # Check if Poetry is in PATH
     if command -v poetry &> /dev/null; then
-        log_info "Poetry already installed at: $(command -v poetry)"
+        log_info "Poetry already installed: $(command -v poetry)"
         return 0
     fi
     
     log_info "Installing Poetry for user $PROJECT_USER..."
     
     # Use pip3 to install Poetry in user directory
-    if ! python3 -m pip install --user poetry --quiet &> /dev/null; then
-        log_error "Failed to install Poetry"
+    if ! python3 -m pip install --user poetry --quiet 2>/dev/null; then
+        log_error "Failed to install Poetry with pip3"
+        log_error "Try manually: python3 -m pip install --user poetry"
         exit 1
     fi
     
     # Verify installation
     if [ ! -f "$POETRY_BIN" ]; then
         log_error "Poetry binary not found at $POETRY_BIN after installation"
+        log_error "Poetry may have been installed to a different location"
+        log_error "Run: python3 -m poetry --version to verify installation"
         exit 1
     fi
     
@@ -160,9 +170,23 @@ install_dependencies() {
     
     log_info "Installing dependencies with Poetry (this may take a few minutes)..."
     
-    if ! $POETRY_BIN install --no-dev &> /dev/null; then
-        log_error "Failed to install dependencies with Poetry"
-        log_error "Try running manually: cd $INSTALL_DIR && poetry install --no-dev"
+    # Try to run Poetry from the installed location first
+    if [ -f "$POETRY_BIN" ]; then
+        if ! $POETRY_BIN install --no-dev 2>&1 | grep -v "^$" > /dev/null; then
+            log_error "Failed to install dependencies with Poetry"
+            log_error "Try running manually: cd $INSTALL_DIR && $POETRY_BIN install --no-dev"
+            exit 1
+        fi
+    # Fall back to poetry in PATH
+    elif command -v poetry &> /dev/null; then
+        if ! poetry install --no-dev 2>&1 | grep -v "^$" > /dev/null; then
+            log_error "Failed to install dependencies with Poetry"
+            log_error "Try running manually: cd $INSTALL_DIR && poetry install --no-dev"
+            exit 1
+        fi
+    else
+        log_error "Poetry not found at $POETRY_BIN or in PATH"
+        log_error "Please install Poetry: python3 -m pip install --user poetry"
         exit 1
     fi
     
@@ -243,24 +267,40 @@ print_summary() {
     log_section "Setup Complete!"
     
     echo ""
-    echo "pip-bot is now installed on your Raspberry Pi"
+    echo "✓ pip-bot is now installed on your Raspberry Pi"
     echo ""
-    echo "Next steps:"
-    echo "  1. Edit configuration:"
-    echo "     nano $INSTALL_DIR/.env"
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║ REQUIRED: Configure Discord credentials before starting    ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
     echo ""
-    echo "  2. Enter your Discord credentials:"
-    echo "     - DISCORD_TOKEN (from Discord Developer Portal)"
-    echo "     - DISCORD_GUILD_ID (your server ID)"
+    echo "Edit your Discord configuration:"
+    echo "  nano $INSTALL_DIR/.env"
     echo ""
-    echo "  3. Start the service:"
+    echo "Required fields:"
+    echo "  • DISCORD_TOKEN — bot token from Discord Developer Portal"
+    echo "  • DISCORD_GUILD_ID — your Discord server ID"
+    echo ""
+    echo "After editing .env:"
+    echo ""
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║ Starting the bot                                           ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "  1. Start the service:"
     echo "     sudo systemctl start pip-bot"
     echo ""
-    echo "  4. Check the logs:"
+    echo "  2. Check the logs (live):"
     echo "     journalctl -u pip-bot -f"
     echo ""
-    echo "  5. Future updates (when you push code to GitHub):"
-    echo "     bash $INSTALL_DIR/scripts/deploy.sh"
+    echo "  3. Check service status:"
+    echo "     sudo systemctl status pip-bot"
+    echo ""
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║ Future updates                                             ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
+    echo "  When you push code to GitHub, deploy with:"
+    echo "    bash $INSTALL_DIR/scripts/deploy.sh"
     echo ""
     echo "Documentation: https://github.com/jorgebc/pip-bot#readme"
     echo ""
