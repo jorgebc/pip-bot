@@ -9,6 +9,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Next
+
+---
+
+## [1.2.0] — 2026-03-28
+
+### Added
 - `utils/filters.py` — TokenSanitizationFilter for preventing credential leakage in logs via regex sanitization of tokens and sensitive keys
 - Discord reconnection handlers in bot/client.py: `on_error()`, `on_disconnect()`, `on_resumed()` for improved stability monitoring
 - `services/system.py` — New `get_system_status_async()` function that runs blocking psutil calls in thread pool to prevent event loop blocking
@@ -30,8 +42,6 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - `pip-bot.service` — Updated ExecStart to use PATH-based poetry resolution instead of hardcoded path, with ExecStartPre check for poetry availability
 - `cogs/system.py` — Improved exception handling in all commands with timeout protection (5s for /ping, 15s for /status, 10s for /help) and graceful error messaging
 - `.gitignore` — Added .env* pattern to ignore environment file backups and variants
-
-### Next
 
 ---
 
