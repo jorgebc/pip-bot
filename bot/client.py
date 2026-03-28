@@ -1,4 +1,4 @@
-"""Bot subclass, on_ready, and global error handler."""
+"""Bot subclass, on_ready, on_error, and global error handler."""
 
 import discord
 from discord.ext import commands
@@ -55,4 +55,16 @@ class PipBot(commands.Bot):
         except Exception as e:
             logger.error(f"Failed to load cogs: {e}", exc_info=True)
             raise
+
+    async def on_error(self, event: str, *args, **kwargs) -> None:
+        """Global error handler for all events."""
+        logger.error(f"Error in {event}:", exc_info=True)
+
+    async def on_disconnect(self) -> None:
+        """Log when bot disconnects from Discord."""
+        logger.warning("Bot disconnected from Discord")
+
+    async def on_resumed(self) -> None:
+        """Log when bot resumes connection after disconnect."""
+        logger.info("Bot resumed connection to Discord")
 

@@ -9,8 +9,12 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `utils/filters.py` — TokenSanitizationFilter for preventing credential leakage in logs via regex sanitization of tokens and sensitive keys
+- Discord reconnection handlers in bot/client.py: `on_error()`, `on_disconnect()`, `on_resumed()` for improved stability monitoring
 
 ### Changed
+- `utils/logger.py` — Integrated TokenSanitizationFilter to all handlers (console and file) to sanitize tokens and sensitive data in exception tracebacks
+- `bot/__main__.py` — Added specific exception handling for discord.LoginFailure and discord.HTTPException to provide clearer error messages and prevent token leakage in generic exceptions
 
 ### Fixed
 

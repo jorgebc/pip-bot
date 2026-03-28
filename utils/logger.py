@@ -5,6 +5,7 @@ import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
+from utils.filters import TokenSanitizationFilter
 from utils.validators import validate_log_level
 
 
@@ -15,6 +16,7 @@ def get_logger(name: str) -> logging.Logger:
     Logger is configured with:
     - Console handler for development
     - RotatingFileHandler for production (5MB max, 3 backups)
+    - TokenSanitizationFilter to prevent token leakage
     - Formatter: [timestamp] [level] [module_name] message
 
     Args:
@@ -33,6 +35,9 @@ def get_logger(name: str) -> logging.Logger:
     log_level = getattr(logging, _get_log_level_from_env(), "INFO")
     logger.setLevel(log_level)
 
+    # Create sanitization filter
+    sanitizer = TokenSanitizationFilter()
+
     # Common formatter
     formatter = logging.Formatter(
         fmt="[%(asctime)s] [%(levelname)-8s] [%(name)s] %(message)s",
@@ -43,6 +48,7 @@ def get_logger(name: str) -> logging.Logger:
     console_handler = logging.StreamHandler()
     console_handler.setLevel(log_level)
     console_handler.setFormatter(formatter)
+    console_handler.addFilter(sanitizer)
     logger.addHandler(console_handler)
 
     # File handler with rotation (logs/pip-bot.log)
@@ -57,6 +63,7 @@ def get_logger(name: str) -> logging.Logger:
     )
     file_handler.setLevel(log_level)
     file_handler.setFormatter(formatter)
+    file_handler.addFilter(sanitizer)
     logger.addHandler(file_handler)
 
     return logger

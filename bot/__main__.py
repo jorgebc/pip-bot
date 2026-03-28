@@ -2,6 +2,8 @@
 
 import asyncio
 
+import discord
+
 from bot import PipBot
 from config import get_settings
 from utils.logger import get_logger
@@ -24,6 +26,12 @@ async def main() -> None:
         await bot.start(settings.discord_token)
     except KeyboardInterrupt:
         logger.info("Bot stopped by user")
+    except discord.LoginFailure:
+        logger.error("Failed to login: Invalid token or authentication failed")
+        raise
+    except discord.HTTPException as e:
+        logger.error(f"Discord API error during startup: {e}")
+        raise
     except Exception as e:
         logger.error(f"Bot crashed: {e}", exc_info=True)
         raise
