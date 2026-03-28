@@ -4,7 +4,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from services.system import get_system_status
+from services.system import get_system_status_async
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -48,8 +48,8 @@ class SystemCog(commands.Cog):
             # Defer the response since metric collection may take a moment
             await interaction.response.defer(ephemeral=True)
 
-            # Collect system metrics
-            status = get_system_status()
+            # Collect system metrics asynchronously (non-blocking)
+            status = await get_system_status_async()
 
             # Format response as an embed for better readability
             embed = discord.Embed(

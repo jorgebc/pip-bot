@@ -11,11 +11,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ### Added
 - `utils/filters.py` — TokenSanitizationFilter for preventing credential leakage in logs via regex sanitization of tokens and sensitive keys
 - Discord reconnection handlers in bot/client.py: `on_error()`, `on_disconnect()`, `on_resumed()` for improved stability monitoring
+- `services/system.py` — New `get_system_status_async()` function that runs blocking psutil calls in thread pool to prevent event loop blocking
 
 ### Changed
 - `utils/logger.py` — Integrated TokenSanitizationFilter to all handlers (console and file) to sanitize tokens and sensitive data in exception tracebacks
 - `bot/__main__.py` — Added specific exception handling for discord.LoginFailure and discord.HTTPException to provide clearer error messages and prevent token leakage in generic exceptions
 - `pip-bot.service` — Added resource limits (MemoryLimit=800M, OOMPolicy=kill, TasksMax=50, CPUQuota=80%) to protect Raspberry Pi from memory exhaustion and runaway processes
+- `services/system.py` — Changed `psutil.cpu_percent(interval=1)` to non-blocking `interval=None` for instant sampling
+- `cogs/system.py` — Updated `/status` command to use new `get_system_status_async()` function that runs blocking psutil calls in thread pool via `loop.run_in_executor()`
 
 ### Fixed
 
