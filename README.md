@@ -18,8 +18,9 @@ A personal, modular Discord bot running 24/7 on a Raspberry Pi 4.
 8. [Commit Convention](#8-commit-convention)
 9. [Testing Strategy](#9-testing-strategy)
 10. [Deployment on Raspberry Pi](#10-deployment-on-raspberry-pi)
-11. [Services AI Layer — Minimum Contract](#11-services-ai-layer--minimum-contract)
+11. [Services AI Layer — Action Dispatcher Protocol](#11-services-ai-layer--action-dispatcher-protocol)
 12. [Roadmap](#12-roadmap)
+13. [Contributing / Development Guidelines](#contributing--development-guidelines)
 
 ---
 
@@ -109,14 +110,16 @@ No direct file transfer. The Raspberry Pi always pulls from the canonical GitHub
 | Layer | Technology | Rationale |
 |---|---|---|
 | Language | Python 3.11+ | Async support, extensive ecosystem, stable on aarch64 |
-| Discord library | `discord.py` 2.x | Stable, well-documented, full slash command support |
+| Discord library | `discord.py` >=2.7.1 | Stable, well-documented, full slash command support |
 | Dependency management | Poetry | Lockfile ensures identical environments on PC and RPi |
-| Environment variables | `.env` + `python-dotenv` | Simple, secure, standard |
+| Environment variables | `.env` + `python-dotenv` >=1.2.2 | Simple, secure, standard |
 | Logging | Python `logging` stdlib + `RotatingFileHandler` | Professional from day one, no external dependencies |
+| System monitoring | `psutil` >=7.2.2 | CPU, RAM, disk, uptime metrics |
 | Version control | Git + GitHub | Standard; also serves as the deployment mechanism |
-| CLI AI assistant | Aider | Open-source, works with Claude/GPT API or local models |
-| IDE AI assistant | JetBrains AI Assistant | Integrated in IntelliJ, context-aware |
-| Testing | `pytest` + `pytest-asyncio` | Industry standard for Python async testing |
+| CLI AI assistant | GitHub Copilot CLI | Integrated CLI agent with local context awareness |
+| IDE AI assistant | JetBrains AI Assistant or GitHub Copilot | Integrated in IntelliJ, context-aware |
+| Testing | `pytest` >=9.0.2 + `pytest-asyncio` >=1.3.0 | Industry standard for Python async testing |
+| Code quality | `ruff` >=0.15.7 | Fast Python linter and formatter |
 | Process management | `systemd` | Native on Raspberry Pi OS, robust, well-documented |
 
 ---
@@ -173,19 +176,25 @@ pip-bot/
 └── README.md
 ```
 
-### Responsibility boundaries
+### Key implementation details
 
-| Folder | Contains | Does NOT contain |
-|---|---|---|
-| `bot/` | Discord client setup, event hooks, cog loader | Business logic, external API calls |
-| `cogs/` | Discord command definitions, user-facing responses | Logic beyond formatting and calling services |
-| `services/nas/` | Transmission RPC client, filesystem queries | Discord objects |
-| `services/email/` | Email composition and sending | Discord objects |
-| `services/actions/` | Action registry and dispatcher for external agent commands | Discord objects, business logic |
-| `config/` | Env loading, type-safe settings | Default values that belong in `.env.example` |
-| `utils/` | Pure, stateless helper functions | Anything with side effects or external I/O |
-| `tests/` | `pytest` tests mirroring `services/` and `utils/` | Tests for cogs (use integration tests for those) |
-| `scripts/` | Shell scripts for deployment and maintenance | Python application code |
+**System service (`services/system.py`):**
+- `SystemStatus` dataclass with fields: `uptime_seconds`, `cpu_percent`, `ram_percent`, `disk_percent`, `disk_used_gb`, `disk_total_gb`, `disk_free_gb`
+- `get_system_status()` — synchronous (BLOCKING) version using `psutil`
+- `get_system_status_async()` — async wrapper that runs blocking calls in executor thread pool
+- `_format_timedelta()` — converts seconds to human-readable format (e.g., "5d 3h 42m")
+- All functions include error handling and logging
+
+**Base service abstraction (`services/base.py`):**
+- Abstract `BaseService` class defining common interface for all services
+- Methods: `initialize()`, `shutdown()`, `health_check()`, `get_status()`
+- Supports future service implementations (NAS, email, etc.) in Phase 2+
+
+**Phase 2–3 services (stubs only, not yet implemented):**
+- `services/nas/client.py` — Transmission RPC client (placeholder)
+- `services/email/client.py` — SMTP email client (placeholder)
+- `services/actions/registry.py` — action name → handler function mapping (placeholder)
+- `services/actions/handler.py` — validates and executes incoming actions (placeholder)
 
 ---
 
@@ -193,42 +202,72 @@ pip-bot/
 
 These are the concrete commands the bot must implement in Phase 1. They serve as the development anchor — all architectural decisions are validated against these.
 
+**Status: 3 of 5 commands implemented. NAS integration (commands 4–5) is Phase 2.**
+
 ### `/ping`
-Responds with `Pong!` and current latency. Used to verify the bot is alive.
+✅ **Implemented.** Responds with `Pong!` and current latency. Used to verify the bot is alive.
 
 ### `/status`
-Returns a system health summary for the Raspberry Pi: CPU usage, RAM usage, disk usage, and system uptime. Uses Python's `psutil` library.
-
-### `/nas status`
-Returns the current state of the NAS: whether it is reachable on the local network, available disk space, and the number of active download tasks.
-
-### `/nas list`
-Lists the items currently available on the NAS, paginated (max 10 per page).
-
-### `/nas download <name>`
-Adds a download task to the NAS queue (via Transmission RPC or equivalent). The bot confirms the task was received or reports an error.
+✅ **Implemented.** Returns a system health summary for the Raspberry Pi: CPU usage, RAM usage, disk usage, and system uptime. Uses Python's `psutil` library. Runs blocking psutil calls in a thread pool to avoid blocking the event loop.
 
 ### `/help`
-Auto-generated command listing all available commands with a one-line description. Built using discord.py's built-in help system.
+✅ **Implemented.** Auto-generated command listing all available commands with a one-line description. Built using discord.py's built-in help system.
 
-> **Note for AI agents:** all command logic lives in `cogs/`. The actual interaction with the NAS (HTTP calls, RPC) lives in `services/nas/`. Cogs only call service methods and format the response for Discord.
+### `/nas status`
+⏳ **Phase 2.** Returns the current state of the NAS: whether it is reachable on the local network, available disk space, and the number of active download tasks.
+
+### `/nas list`
+⏳ **Phase 2.** Lists the items currently available on the NAS, paginated (max 10 per page).
+
+### `/nas download <magnet>`
+⏳ **Phase 2.** Adds a download task to the NAS queue (via Transmission RPC or equivalent). The bot confirms the task was received or reports an error.
+
+> **Note for AI agents:** command logic lives in `cogs/`. The actual interaction with external services (NAS, email, Discord API) lives in `services/`. Cogs only call service methods and format the response for Discord. See Section 5 for responsibility boundaries.
 
 ---
 
-## 7. AI-Assisted Development — Prompt Roles
+## 7. AI-Assisted Development — Guidance for Code Assistants
 
-These are **not** autonomous parallel agents. They are **prompt modes** — structured instructions you activate in a single session (Aider CLI or IDE chat) at specific points in the workflow. The developer activates the relevant role for each type of task.
+This project leverages AI assistants throughout the development workflow. Code assistants (IDE or CLI) should follow these guidelines:
 
-### Role Definitions
+### Key Principles
 
-| Role | When to activate | What to ask |
-|---|---|---|
-| **Architecture** | Starting a new module or refactoring | "Acting as a software architect: design the structure for `services/nas/`, define the public interface, identify responsibilities" |
-| **Implementation** | Writing code | Default mode — no special framing needed |
-| **Code Review** | After implementing a feature | "Review this code for: PEP 8 compliance, error handling completeness, logging coverage, and adherence to the project structure defined in the README" |
-| **Testing** | After implementation is reviewed | "Write `pytest` + `pytest-asyncio` tests for this service. Focus on: happy path, error cases, and edge cases. Do not test Discord cog methods directly." |
-| **Documentation** | Before committing | "Write a docstring for this module/class/function following Google style" |
-| **Deploy** | Preparing a release | "Generate a `systemd` unit file and a `deploy.sh` script for this project. Target: Raspberry Pi 4, Debian Bookworm, aarch64, Poetry environment" |
+1. **Read the README and ROADMAP first** — understand the architecture and current phase before writing code
+2. **Follow responsibility boundaries** — cogs stay thin; logic lives in services
+3. **Test-driven development** — write tests alongside code; all services must be unit-tested
+4. **Logging and error handling** — use `utils/logger.py`; never use bare `except`
+5. **ARM64 compatibility** — check PyPI for `linux_aarch64` wheels before adding dependencies
+6. **Documentation** — write Google-style docstrings; update CHANGELOG and ROADMAP on completion
+
+### When Implementing a Feature
+
+1. **Start with the service layer** — design the business logic in `services/` first
+2. **Write tests** — use `pytest` and `pytest-asyncio`; mock all external I/O
+3. **Then write the cog** — thin wrapper that calls the service and formats the response
+4. **Document** — add Google-style docstrings and module-level comments
+5. **Commit** — use Conventional Commits; include issue number if applicable
+
+### Example Workflow for Phase 2 (NAS Integration)
+
+```
+1. Design `services/nas/client.py`:
+   - Transmission RPC connection, status check, add download
+   - Write tests in `tests/services/nas/test_client.py`
+   
+2. Implement `cogs/nas.py`:
+   - `/nas status`, `/nas list`, `/nas download` commands
+   - Call `services/nas.client` methods
+   - Format responses as Discord embeds
+   
+3. Update documentation:
+   - Update this README if NAS protocol details change
+   - Update CHANGELOG under [Unreleased]
+   - Update ROADMAP milestones
+   
+4. Commit with Conventional Commits:
+   - `feat(nas): implement Transmission RPC client`
+   - `feat(cogs): add /nas commands`
+```
 
 ## 8. Commit Convention
 
@@ -372,7 +411,7 @@ WantedBy=multi-user.target
 
 ---
 
-## 11. Action Dispatcher — External Agent Protocol
+## 11. Services AI Layer — Action Dispatcher Protocol
 
 This is the core integration point for Phase 2+. External agents communicate with pip-bot by sending structured messages to a **dedicated private Discord channel**. The bot listens on that channel, validates the message, and executes the requested action.
 
@@ -382,7 +421,7 @@ This is the core integration point for Phase 2+. External agents communicate wit
 - Easy to audit: all agent requests are logged in one place
 - Simple permission model: only you (and bots you authorise) can write to it
 
-### Message protocol (Phase 2 — to be finalised)
+### Message protocol (Phase 2 — draft)
 
 External agents send a JSON-formatted message to the actions channel:
 
@@ -412,18 +451,24 @@ The bot responds in the same channel (or a results channel) with:
 
 Maps action names to service handler functions. Adding a new capability means registering a new action — no changes to the core bot or cogs.
 
+**Phase 2 planned actions:**
 ```
 "nas.download"      → services.nas.client.add_download()
 "nas.list"          → services.nas.client.list_files()
-"email.send_report" → services.email.client.send()
-"system.status"     → services.system.get_status()
 ```
 
-### Security model (Phase 1 — simple)
+**Phase 3 planned actions:**
+```
+"email.send_report" → services.email.client.send()
+```
+
+### Security model (Phase 1–2 — simple)
 
 - The actions channel is private: only you and explicitly authorised bots have write access
 - The bot validates that the message author is on an allowlist defined in `.env`
-- No cryptographic signing in Phase 1 — not needed for a single-owner private server
+- No cryptographic signing in Phase 1–2 — not needed for a single-owner private server
+
+**Phase 3 enhancement:** may add HMAC signing for cloud-based agents
 
 ## 12. Roadmap
 
@@ -445,36 +490,68 @@ The full roadmap with phases, milestones, and completion criteria lives in [`ROA
 
 ## Environment Variables Reference
 
-| Variable | Required | Description |
-|---|---|---|
-| `DISCORD_TOKEN` | ✅ | Bot token from Discord Developer Portal |
-| `DISCORD_GUILD_ID` | ✅ | Your server ID (for fast slash command registration in dev) |
-| `NAS_HOST` | Phase 1 | Local IP of the NAS (e.g., `192.168.1.100`) |
-| `NAS_PORT` | Phase 1 | Transmission RPC port (default: `9091`) |
-| `NAS_USER` | Phase 1 | Transmission username |
-| `NAS_PASSWORD` | Phase 1 | Transmission password |
-| `LOG_LEVEL` | Optional | `DEBUG`, `INFO`, `WARNING` (default: `INFO`) |
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DISCORD_TOKEN` | ✅ Phase 1+ | — | Bot token from Discord Developer Portal |
+| `DISCORD_GUILD_ID` | ✅ Phase 1+ | — | Your server ID (enables fast slash command registration) |
+| `LOG_LEVEL` | ❌ | `INFO` | Logging level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
+| `NAS_HOST` | ⏳ Phase 2 | — | Local IP of NAS (e.g., `192.168.1.100`); all NAS_* vars required together |
+| `NAS_PORT` | ⏳ Phase 2 | — | Transmission RPC port (typically `9091`) |
+| `NAS_USER` | ⏳ Phase 2 | — | Transmission username |
+| `NAS_PASSWORD` | ⏳ Phase 2 | — | Transmission password |
+| `ACTIONS_CHANNEL_ID` | ⏳ Phase 3 | — | Discord channel ID for agent commands; required for Phase 3+ |
+| `ALLOWED_AGENT_IDS` | ⏳ Phase 3 | — | Comma-separated Discord user/bot IDs allowed to send actions |
 
-> Copy `.env.example` to `.env` and fill in your values. **Never commit `.env` to Git.**
+**Notes:**
+- Copy `.env.example` to `.env` and fill in required values
+- **Never commit `.env` to Git** — it contains secrets
+- NAS variables: if `NAS_HOST` is set, all four `NAS_*` variables must be set (enforced by `config/settings.py`)
+- Phase 2–3 variables are optional in Phase 1; validation enforces that all-or-nothing rule for each section
+
+**Current Phase 1 minimum:**
+```bash
+DISCORD_TOKEN=<your-bot-token>
+DISCORD_GUILD_ID=<your-server-id>
+```
 
 ---
 
-## Contributing / AI Agent Instructions
+## Contributing / Development Guidelines
 
-This project is developed primarily by AI agents under human supervision. When generating or modifying code:
+This project is developed with strong AI assistance. When generating or modifying code:
 
-1. **Read this README first** — structure and conventions are non-negotiable
-2. **One responsibility per file** — if a file needs to import from both `discord` and a third-party HTTP library, it probably belongs in a service, not a cog
-3. **All secrets via `.env`** — no hardcoded values anywhere
-4. **No bare `except`** — always catch specific exceptions and log them
-5. **Logging over print** — use `utils/logger.py` to obtain a logger; never use `print()` in production code
-6. **Commit with Conventional Commits** format — see Section 8
-7. **ARM64 compatibility check** — before adding any dependency, confirm it has `linux_aarch64` wheels on PyPI
-8. **Update CHANGELOG.md on every PR** — add an entry under `[Unreleased]` describing what changed
-9. **Update ROADMAP.md when completing a milestone** — check the box and update the `[Unreleased]` → Next section in CHANGELOG
-10. **Version bump** — update the version in `pyproject.toml` following Semantic Versioning:
-  - `PATCH` (0.1.x): bug fix or minor adjustment, no new functionality
-  - `MINOR` (0.x.0): new functionality added — bump on every completed roadmap phase
-  - `MAJOR` (x.0.0): breaking change to the external agent protocol or core architecture
-  - Always update the version in the same commit that closes the phase PR
-  - Bump the version with: `poetry version patch` / `poetry version minor` / `poetry version major`
+1. **Read this README and ROADMAP first** — structure and conventions are non-negotiable
+2. **Follow the phase workflow** — Phase 1 is core infrastructure (done); Phase 2 is NAS integration
+3. **One responsibility per file** — if a file needs to import both `discord` and third-party HTTP libraries, it probably belongs in a service, not a cog
+4. **All secrets via `.env`** — no hardcoded values anywhere; use `config/settings.py` for validation
+5. **No bare `except`** — always catch specific exceptions and log them via `utils/logger.py`
+6. **Logging over print** — use `utils/logger.py` to obtain a logger; never use `print()` in production code
+7. **Async-first design** — use `asyncio` and `pytest-asyncio` for all I/O-bound operations
+8. **ARM64 compatibility check** — before adding any dependency, confirm it has `linux_aarch64` wheels on PyPI
+9. **Commit with Conventional Commits** format — see Section 8 for examples
+10. **Update CHANGELOG.md on every PR** — add an entry under `[Unreleased]` describing what changed
+11. **Update ROADMAP.md when completing a milestone** — check the box and document completion
+12. **Version management:**
+    - `PATCH` (0.1.x): bug fix or minor adjustment, no new functionality
+    - `MINOR` (0.x.0): new functionality added — bump on every completed roadmap phase
+    - `MAJOR` (x.0.0): breaking change to the external agent protocol or core architecture
+    - Bump with: `poetry version patch` / `poetry version minor` / `poetry version major`
+    - Always update version in the same commit that closes a phase PR
+
+### Testing Checklist
+
+Before submitting:
+```bash
+poetry run pytest                          # All tests pass
+poetry run pytest --cov=. --cov-report=term-missing  # Coverage check
+poetry run ruff check .                    # No linting errors
+poetry run ruff format .                   # Code formatted
+```
+
+### New Dependencies
+
+Before adding:
+1. Check PyPI for `linux_aarch64` wheel availability
+2. Update `pyproject.toml` with version constraints (e.g., `>=2.7.1,<3.0.0`)
+3. Run `poetry lock` to update `poetry.lock`
+4. Document in CHANGELOG under `[Unreleased]`

@@ -8,13 +8,33 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Added
-
 ### Changed
+
+### Added
 
 ### Fixed
 
 ### Next
+
+---
+
+## [1.2.1] — 2026-03-28
+
+### Changed
+- README.md: Updated Phase 1 features section with implementation status (3/5 commands complete)
+- README.md: Updated Tech Stack section with actual dependencies and versions from pyproject.toml
+- README.md: Refactored Section 7 (AI-Assisted Development) with clearer guidance for code assistants
+- README.md: Expanded Section 11 (Services AI Layer) with detailed action registry and security model
+- README.md: Added "Key implementation details" subsection with service layer documentation
+- README.md: Updated environment variables reference table with Phase 2–3 variables and validation rules
+- README.md: Reorganized contributing guidelines with practical testing checklist
+- ROADMAP.md: Added current status header noting Phase 1 is ~90% complete
+- .env.example: Enhanced documentation for Phase 2–3 variables with validation notes and SMTP examples
+
+### Added
+- Environment variable documentation for Phase 3 (ACTIONS_CHANNEL_ID, ALLOWED_AGENT_IDS, SMTP_*)
+- Testing checklist in Contributing section (pytest, coverage, ruff checks)
+- Example workflow for Phase 2 NAS integration in Section 7
 
 ---
 

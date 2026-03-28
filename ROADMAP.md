@@ -3,6 +3,8 @@
 This roadmap reflects the intended evolution of the project in sequential phases.
 Each phase builds on the previous one and has a clear, verifiable completion criterion.
 
+**Current Status:** Phase 1 is ~90% complete. Core bot infrastructure is production-ready; NAS integration (Phase 2) is pending.
+
 ---
 
 ## Phase 1 — Bot Core & Raspberry Pi Control
