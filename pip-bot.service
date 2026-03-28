@@ -7,7 +7,8 @@ Wants=network-online.target
 Type=simple
 User=pi
 WorkingDirectory=/home/pi/pip-bot
-ExecStart=/home/pi/.local/bin/poetry run python -m bot
+ExecStartPre=/bin/sh -c 'PATH=$PATH:/home/pi/.local/bin; exec poetry --version > /dev/null'
+ExecStart=/bin/sh -c 'PATH=$PATH:/home/pi/.local/bin; exec poetry run python -m bot'
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal

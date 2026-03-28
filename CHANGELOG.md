@@ -22,6 +22,9 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 - `config/settings.py` — NAS configuration validation: enforces all-or-none rule (if NAS_HOST is set, all of NAS_HOST, NAS_PORT, NAS_USER, NAS_PASSWORD must be set)
+- `scripts/deploy.sh` — Added .env backup/restore logic before and after git reset to prevent accidental loss of configuration during deployment
+- `scripts/deploy.sh` — Improved error reporting by capturing stderr from poetry install failures instead of silently discarding output
+- `pip-bot.service` — Updated ExecStart to use PATH-based poetry resolution instead of hardcoded path, with ExecStartPre check for poetry availability
 
 ### Next
 

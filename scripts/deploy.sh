@@ -73,6 +73,12 @@ pull_code() {
     log_info "Pulling latest code from origin/main..."
     cd "$PROJECT_DIR"
     
+    # Backup .env before git reset in case it's accidentally committed
+    if [ -f ".env" ]; then
+        log_info "Backing up .env before pulling code..."
+        cp .env .env.backup.pre-deploy
+    fi
+    
     if ! git fetch origin main &> /dev/null; then
         log_error "Failed to fetch from GitHub. Check your internet connection."
         exit 1
@@ -88,6 +94,13 @@ pull_code() {
         exit 1
     fi
     
+    # Restore .env if it was backed up
+    if [ -f ".env.backup.pre-deploy" ]; then
+        log_info "Restoring .env from backup..."
+        cp .env.backup.pre-deploy .env
+        rm .env.backup.pre-deploy
+    fi
+    
     log_info "Code pulled successfully"
 }
 
@@ -100,14 +113,14 @@ install_dependencies() {
     
     # Try the standard location first
     if [ -f "$POETRY_BIN" ]; then
-        if ! $POETRY_BIN install --no-dev &> /dev/null; then
-            log_error "Poetry install failed"
+        if ! output=$($POETRY_BIN install --no-dev 2>&1); then
+            log_error "Poetry install failed with output: $output"
             exit 1
         fi
     # Fall back to poetry in PATH
     elif command -v poetry &> /dev/null; then
-        if ! poetry install --no-dev &> /dev/null; then
-            log_error "Poetry install failed"
+        if ! output=$(poetry install --no-dev 2>&1); then
+            log_error "Poetry install failed with output: $output"
             exit 1
         fi
     else
