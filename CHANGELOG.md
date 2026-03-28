@@ -21,6 +21,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - `cogs/system.py` — Updated `/status` command to use new `get_system_status_async()` function that runs blocking psutil calls in thread pool via `loop.run_in_executor()`
 
 ### Fixed
+- `config/settings.py` — NAS configuration validation: enforces all-or-none rule (if NAS_HOST is set, all of NAS_HOST, NAS_PORT, NAS_USER, NAS_PASSWORD must be set)
 
 ### Next
 

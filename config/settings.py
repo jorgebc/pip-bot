@@ -88,6 +88,16 @@ def get_settings() -> Settings:
     nas_user = os.getenv("NAS_USER")
     nas_password = os.getenv("NAS_PASSWORD")
 
+    # Validate NAS configuration: if one is set, all must be set
+    nas_values = [nas_host, nas_port, nas_user, nas_password]
+    nas_values_set = sum(1 for v in nas_values if v is not None)
+    
+    if nas_values_set > 0 and nas_values_set < 4:
+        raise ConfigError(
+            "NAS configuration is incomplete: all of NAS_HOST, NAS_PORT, "
+            "NAS_USER, and NAS_PASSWORD must be set, or none of them should be set"
+        )
+
     _settings = Settings(
         discord_token=discord_token,
         discord_guild_id=discord_guild_id,

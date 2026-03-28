@@ -190,6 +190,39 @@ class TestGetSettings:
         {
             "DISCORD_TOKEN": "test-token",
             "DISCORD_GUILD_ID": "12345",
+            "NAS_HOST": "192.168.1.1",
+            # Missing NAS_PORT, NAS_USER, NAS_PASSWORD
+        },
+        clear=True,
+    )
+    def test_get_settings_incomplete_nas_config_missing_port_user_password(self, mock_load_dotenv):
+        """Test that partial NAS config raises error."""
+        with pytest.raises(ConfigError, match="NAS configuration is incomplete"):
+            get_settings()
+
+    @patch("config.settings.load_dotenv")
+    @patch.dict(
+        os.environ,
+        {
+            "DISCORD_TOKEN": "test-token",
+            "DISCORD_GUILD_ID": "12345",
+            "NAS_PORT": "9091",
+            "NAS_USER": "admin",
+            # Missing NAS_HOST and NAS_PASSWORD
+        },
+        clear=True,
+    )
+    def test_get_settings_incomplete_nas_config_missing_host_password(self, mock_load_dotenv):
+        """Test that partial NAS config raises error."""
+        with pytest.raises(ConfigError, match="NAS configuration is incomplete"):
+            get_settings()
+
+    @patch("config.settings.load_dotenv")
+    @patch.dict(
+        os.environ,
+        {
+            "DISCORD_TOKEN": "test-token",
+            "DISCORD_GUILD_ID": "12345",
             "LOG_LEVEL": "debug",  # lowercase
         },
         clear=True,
