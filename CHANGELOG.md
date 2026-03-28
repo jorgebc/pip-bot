@@ -19,12 +19,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - `pip-bot.service` — Added resource limits (MemoryLimit=800M, OOMPolicy=kill, TasksMax=50, CPUQuota=80%) to protect Raspberry Pi from memory exhaustion and runaway processes
 - `services/system.py` — Changed `psutil.cpu_percent(interval=1)` to non-blocking `interval=None` for instant sampling
 - `cogs/system.py` — Updated `/status` command to use new `get_system_status_async()` function that runs blocking psutil calls in thread pool via `loop.run_in_executor()`
+- `cogs/system.py` — Added rate limiting via `@app_commands.checks.cooldown(1, 60)` to all commands (/ping, /status, /help) and asyncio.timeout() for Discord API calls
 
 ### Fixed
 - `config/settings.py` — NAS configuration validation: enforces all-or-none rule (if NAS_HOST is set, all of NAS_HOST, NAS_PORT, NAS_USER, NAS_PASSWORD must be set)
 - `scripts/deploy.sh` — Added .env backup/restore logic before and after git reset to prevent accidental loss of configuration during deployment
 - `scripts/deploy.sh` — Improved error reporting by capturing stderr from poetry install failures instead of silently discarding output
 - `pip-bot.service` — Updated ExecStart to use PATH-based poetry resolution instead of hardcoded path, with ExecStartPre check for poetry availability
+- `cogs/system.py` — Improved exception handling in all commands with timeout protection (5s for /ping, 15s for /status, 10s for /help) and graceful error messaging
 
 ### Next
 
