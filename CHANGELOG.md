@@ -15,6 +15,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ### Changed
 - `utils/logger.py` — Integrated TokenSanitizationFilter to all handlers (console and file) to sanitize tokens and sensitive data in exception tracebacks
 - `bot/__main__.py` — Added specific exception handling for discord.LoginFailure and discord.HTTPException to provide clearer error messages and prevent token leakage in generic exceptions
+- `pip-bot.service` — Added resource limits (MemoryLimit=800M, OOMPolicy=kill, TasksMax=50, CPUQuota=80%) to protect Raspberry Pi from memory exhaustion and runaway processes
 
 ### Fixed
 
