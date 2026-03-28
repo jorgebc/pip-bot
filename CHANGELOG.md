@@ -18,6 +18,33 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.0] — 2026-03-28
+
+### Added
+- `utils/filters.py` — TokenSanitizationFilter for preventing credential leakage in logs via regex sanitization of tokens and sensitive keys
+- Discord reconnection handlers in bot/client.py: `on_error()`, `on_disconnect()`, `on_resumed()` for improved stability monitoring
+- `services/system.py` — New `get_system_status_async()` function that runs blocking psutil calls in thread pool to prevent event loop blocking
+- `services/base.py` — Abstract base class for all pip-bot services defining common interface for Phase 2+ implementations
+- `tests/test_imports.py` — Import verification tests to detect circular dependencies and ensure module structure integrity
+
+### Changed
+- `utils/logger.py` — Integrated TokenSanitizationFilter to all handlers (console and file) to sanitize tokens and sensitive data in exception tracebacks
+- `bot/__main__.py` — Added specific exception handling for discord.LoginFailure and discord.HTTPException to provide clearer error messages and prevent token leakage in generic exceptions
+- `pip-bot.service` — Added resource limits (MemoryLimit=800M, OOMPolicy=kill, TasksMax=50, CPUQuota=80%) to protect Raspberry Pi from memory exhaustion and runaway processes
+- `services/system.py` — Changed `psutil.cpu_percent(interval=1)` to non-blocking `interval=None` for instant sampling
+- `cogs/system.py` — Updated `/status` command to use new `get_system_status_async()` function that runs blocking psutil calls in thread pool via `loop.run_in_executor()`
+- `cogs/system.py` — Added rate limiting via `@app_commands.checks.cooldown(1, 60)` to all commands (/ping, /status, /help) and asyncio.timeout() for Discord API calls
+
+### Fixed
+- `config/settings.py` — NAS configuration validation: enforces all-or-none rule (if NAS_HOST is set, all of NAS_HOST, NAS_PORT, NAS_USER, NAS_PASSWORD must be set)
+- `scripts/deploy.sh` — Added .env backup/restore logic before and after git reset to prevent accidental loss of configuration during deployment
+- `scripts/deploy.sh` — Improved error reporting by capturing stderr from poetry install failures instead of silently discarding output
+- `pip-bot.service` — Updated ExecStart to use PATH-based poetry resolution instead of hardcoded path, with ExecStartPre check for poetry availability
+- `cogs/system.py` — Improved exception handling in all commands with timeout protection (5s for /ping, 15s for /status, 10s for /help) and graceful error messaging
+- `.gitignore` — Added .env* pattern to ignore environment file backups and variants
+
+---
+
 ## [1.0.1] — 2026-03-26
 
 ### Fixed

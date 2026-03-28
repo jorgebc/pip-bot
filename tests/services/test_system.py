@@ -105,7 +105,7 @@ class TestGetSystemStatus:
         assert status.disk_total_gb == 1000.0
 
         # Verify method calls
-        mock_cpu_percent.assert_called_once_with(interval=1)
+        mock_cpu_percent.assert_called_once_with(interval=None)
         mock_virtual_memory.assert_called_once()
         mock_disk_usage.assert_called_once_with("/")
 

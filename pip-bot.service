@@ -7,12 +7,18 @@ Wants=network-online.target
 Type=simple
 User=pi
 WorkingDirectory=/home/pi/pip-bot
-ExecStart=/home/pi/.local/bin/poetry run python -m bot
+ExecStartPre=/bin/sh -c 'PATH=$PATH:/home/pi/.local/bin; exec poetry --version > /dev/null'
+ExecStart=/bin/sh -c 'PATH=$PATH:/home/pi/.local/bin; exec poetry run python -m bot'
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
 Environment=PYTHONUNBUFFERED=1
+# Resource limits to protect Raspberry Pi from OOM and runaway processes
+MemoryLimit=800M
+OOMPolicy=kill
+TasksMax=50
+CPUQuota=80%
 
 [Install]
 WantedBy=multi-user.target

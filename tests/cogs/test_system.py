@@ -88,7 +88,7 @@ class TestSystemCogStatus:
         )
 
         cog = SystemCog(bot)
-        with patch("cogs.system.get_system_status", return_value=mock_status):
+        with patch("cogs.system.get_system_status_async", new_callable=AsyncMock, return_value=mock_status):
             await cog.status.callback(cog, interaction)
 
         # Verify deferred response
@@ -120,7 +120,7 @@ class TestSystemCogStatus:
         interaction.followup.send = AsyncMock()
 
         cog = SystemCog(bot)
-        with patch("cogs.system.get_system_status", side_effect=OSError("Permission denied")):
+        with patch("cogs.system.get_system_status_async", new_callable=AsyncMock, side_effect=OSError("Permission denied")):
             await cog.status.callback(cog, interaction)
 
         # Verify deferred response
@@ -149,7 +149,7 @@ class TestSystemCogStatus:
         interaction.followup.send = AsyncMock(side_effect=discord.DiscordException("Send failed"))
 
         cog = SystemCog(bot)
-        with patch("cogs.system.get_system_status", return_value=mock_status):
+        with patch("cogs.system.get_system_status_async", new_callable=AsyncMock, return_value=mock_status):
             # Should not raise, just log the error
             await cog.status.callback(cog, interaction)
 

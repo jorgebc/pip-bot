@@ -1,5 +1,6 @@
 """System health monitoring service."""
 
+import asyncio
 import psutil
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -25,7 +26,7 @@ class SystemStatus:
 
 def get_system_status() -> SystemStatus:
     """
-    Collect current system health metrics.
+    Collect current system health metrics (BLOCKING - use async version in Discord cogs).
 
     Returns:
         SystemStatus object with CPU, RAM, disk, and uptime information.
@@ -39,8 +40,8 @@ def get_system_status() -> SystemStatus:
         uptime_delta = datetime.now() - boot_time
         uptime_str = _format_timedelta(uptime_delta)
 
-        # Get CPU usage (average over 1 second)
-        cpu_percent = psutil.cpu_percent(interval=1)
+        # Get CPU usage (non-blocking instantaneous value)
+        cpu_percent = psutil.cpu_percent(interval=None)
 
         # Get RAM usage
         ram = psutil.virtual_memory()
@@ -66,6 +67,27 @@ def get_system_status() -> SystemStatus:
         )
     except Exception as e:
         logger.error(f"Failed to collect system metrics: {e}", exc_info=True)
+        raise
+
+
+async def get_system_status_async() -> SystemStatus:
+    """
+    Collect current system health metrics asynchronously.
+
+    Runs blocking psutil calls in a thread pool to avoid blocking the event loop.
+
+    Returns:
+        SystemStatus object with CPU, RAM, disk, and uptime information.
+
+    Raises:
+        Exception: If system metrics cannot be collected.
+    """
+    loop = asyncio.get_event_loop()
+    try:
+        status = await loop.run_in_executor(None, get_system_status)
+        return status
+    except Exception as e:
+        logger.error(f"Failed to collect system metrics asynchronously: {e}", exc_info=True)
         raise
 
 
