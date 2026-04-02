@@ -19,6 +19,7 @@ class Settings:
 
     # Phase 1 - Optional
     log_level: str = "INFO"
+    startup_channel_id: int | None = None
 
     # Phase 2+ - Optional (NAS integration)
     nas_host: str | None = None
@@ -75,6 +76,17 @@ def get_settings() -> Settings:
     log_level_str = os.getenv("LOG_LEVEL", "INFO")
     log_level = validate_log_level(log_level_str)
 
+    # Optional Phase 1 variables - startup channel
+    startup_channel_id_str = os.getenv("STARTUP_CHANNEL_ID")
+    startup_channel_id: int | None = None
+    if startup_channel_id_str:
+        try:
+            startup_channel_id = int(startup_channel_id_str)
+        except ValueError:
+            raise ConfigError(
+                f"STARTUP_CHANNEL_ID must be an integer, got: {startup_channel_id_str}"
+            )
+
     # Optional Phase 2+ variables
     nas_host = os.getenv("NAS_HOST")
     nas_port_str = os.getenv("NAS_PORT")
@@ -102,6 +114,7 @@ def get_settings() -> Settings:
         discord_token=discord_token,
         discord_guild_id=discord_guild_id,
         log_level=log_level,
+        startup_channel_id=startup_channel_id,
         nas_host=nas_host,
         nas_port=nas_port,
         nas_user=nas_user,
