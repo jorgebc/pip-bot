@@ -43,6 +43,26 @@ Next to implement (in order):
 4. `/network` — local IP, public IP, interfaces
 5. `services/pihole/client.py` + `cogs/pihole.py` — Pi-hole API commands
 
+## Feature implementation workflow
+
+Follow this order every time — no exceptions:
+
+1. **Service first** — implement business logic in `services/` with no Discord imports
+2. **Tests** — write unit tests in `tests/` mirroring the source path; mock all external I/O
+3. **Cog** — thin wrapper in `cogs/` that calls the service and formats the Discord response
+4. **Docstrings** — Google style on all public functions and classes
+5. **Commit + update docs** — Conventional Commit + CHANGELOG + version + README/ROADMAP if needed
+
+## Testing
+
+- Framework: `pytest` + `pytest-asyncio`
+- Mark every async test with `@pytest.mark.asyncio`
+- Mock all external I/O at the `services/` boundary — no real network calls in tests
+- Test file mirrors source: `services/pihole/client.py` → `tests/services/pihole/test_client.py`
+- `services/` and `utils/` must have full unit tests
+- `config/` tested with `monkeypatch` for env vars
+- `cogs/` are not unit-tested directly — test the services they call
+
 ## Non-negotiable rules
 
 - **One responsibility per file.** If a file needs both `discord` and an HTTP client, the HTTP logic belongs in `services/`, not `cogs/`.
