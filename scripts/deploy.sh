@@ -111,6 +111,9 @@ install_dependencies() {
     
     POETRY_BIN="${HOME}/.local/bin/poetry"
     
+    # Remove stale lock file so Poetry regenerates it from pyproject.toml
+    rm -f "$PROJECT_DIR/poetry.lock"
+
     # Try the standard location first
     if [ -f "$POETRY_BIN" ]; then
         if ! output=$($POETRY_BIN lock 2>&1); then
