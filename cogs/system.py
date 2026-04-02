@@ -5,7 +5,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from services.system import get_system_status_async
+from services.system import get_cpu_temperature_async, get_system_status_async
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -143,6 +143,68 @@ class SystemCog(commands.Cog):
                 logger.error(
                     f"Failed to send error response: {followup_error}", exc_info=True
                 )
+
+    @app_commands.command(name="temp", description="Show current CPU temperature")
+    @app_commands.checks.cooldown(1, 30)
+    async def temp(self, interaction: discord.Interaction) -> None:
+        """
+        Display the current CPU temperature of the Raspberry Pi.
+
+        Reads the temperature from the Linux thermal subsystem and shows it
+        with a color-coded embed (green below 70°C, red at 70°C or above).
+
+        Args:
+            interaction: Discord interaction object.
+        """
+        try:
+            async with asyncio.timeout(10):
+                temp_c = await get_cpu_temperature_async()
+
+                color = discord.Color.red() if temp_c >= 70.0 else discord.Color.green()
+                status_label = "Hot" if temp_c >= 70.0 else "Normal"
+
+                embed = discord.Embed(
+                    title="CPU Temperature",
+                    color=color,
+                )
+                embed.add_field(
+                    name="🌡️ Temperature",
+                    value=f"{temp_c:.1f}°C — {status_label}",
+                    inline=False,
+                )
+
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                logger.debug(f"Responded to /temp command ({temp_c:.1f}°C)")
+
+        except FileNotFoundError:
+            logger.error("Thermal zone file not found — not running on Linux/RPi?")
+            try:
+                await interaction.response.send_message(
+                    "❌ CPU temperature is not available on this system.",
+                    ephemeral=True,
+                )
+            except Exception as e:
+                logger.error(f"Failed to send error response: {e}")
+
+        except asyncio.TimeoutError:
+            logger.error("Timeout reading CPU temperature")
+            try:
+                await interaction.response.send_message(
+                    "❌ Request timed out",
+                    ephemeral=True,
+                )
+            except Exception as e:
+                logger.error(f"Failed to send timeout error: {e}")
+
+        except Exception as e:
+            logger.error(f"Error in /temp command: {e}", exc_info=True)
+            try:
+                await interaction.response.send_message(
+                    f"❌ Error reading CPU temperature: {str(e)}",
+                    ephemeral=True,
+                )
+            except Exception as followup_error:
+                logger.error(f"Failed to send error response: {followup_error}")
 
     @app_commands.command(name="help", description="Show all available commands")
     @app_commands.checks.cooldown(1, 60)
