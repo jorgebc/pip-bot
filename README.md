@@ -202,7 +202,7 @@ pip-bot/
 
 These are the concrete commands the bot must implement in Phase 1. They serve as the development anchor — all architectural decisions are validated against these.
 
-**Status: 3 of 5 commands implemented. NAS integration (commands 4–5) is Phase 2.**
+**Status: 3 of 10 commands implemented. RPi extended control (commands 4–9) is next. NAS integration (commands 10–12) is Phase 2.**
 
 ### `/ping`
 ✅ **Implemented.** Responds with `Pong!` and current latency. Used to verify the bot is alive.
@@ -212,6 +212,27 @@ These are the concrete commands the bot must implement in Phase 1. They serve as
 
 ### `/help`
 ✅ **Implemented.** Auto-generated command listing all available commands with a one-line description. Built using discord.py's built-in help system.
+
+### `/temp`
+⏳ **Pending.** Returns the current CPU temperature of the Raspberry Pi. Reads from `/sys/class/thermal/thermal_zone0/temp`. Critical for monitoring thermals on a board without active cooling.
+
+### `/reboot`
+⏳ **Pending.** Reboots the Raspberry Pi. Requires an explicit confirmation step (second command or button) to prevent accidental reboots. Sends a confirmation message to Discord before the reboot executes.
+
+### `/logs [lines]`
+⏳ **Pending.** Returns the last N lines (default 20, max 50) from the bot's systemd journal (`journalctl -u pip-bot`). Useful for remote diagnosis without SSH access.
+
+### `/network`
+⏳ **Pending.** Returns the current network state of the Raspberry Pi: local IP address, public IP address, and number of connected network interfaces. Uses `psutil` for local info and a lightweight external call for public IP.
+
+### `/pihole status`
+⏳ **Pending.** Returns the current Pi-hole status: enabled/disabled, total DNS queries today, number and percentage of blocked queries. Calls the Pi-hole local API (`http://localhost/admin/api.php`).
+
+### `/pihole enable` / `/pihole disable [seconds]`
+⏳ **Pending.** Enables or disables Pi-hole ad blocking. The disable command accepts an optional duration in seconds after which Pi-hole re-enables automatically (delegates to Pi-hole API). Useful when a legitimate site is wrongly blocked.
+
+### `/pihole top`
+⏳ **Pending.** Returns the top 5 blocked domains and top 5 clients by query count from Pi-hole. Uses the Pi-hole local API.
 
 ### `/nas status`
 ⏳ **Phase 2.** Returns the current state of the NAS: whether it is reachable on the local network, available disk space, and the number of active download tasks.

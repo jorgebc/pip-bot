@@ -3,7 +3,7 @@
 This roadmap reflects the intended evolution of the project in sequential phases.
 Each phase builds on the previous one and has a clear, verifiable completion criterion.
 
-**Current Status:** Phase 1 is ~90% complete. Core bot infrastructure is production-ready; NAS integration (Phase 2) is pending.
+**Current Status:** Phase 1 is ~50% complete. Core bot infrastructure and system commands are production-ready; RPi extended control commands (temp, reboot, logs, network, Pi-hole) are next.
 
 ---
 
@@ -23,6 +23,12 @@ Each phase builds on the previous one and has a clear, verifiable completion cri
 - [x] `systemd` unit file — bot runs 24/7 on RPi, restarts on failure
 - [x] `scripts/deploy.sh` — one-command deploy from PC to RPi via git pull
 - [x] `scripts/setup_rpi.sh` — first-time RPi setup script
+- [ ] `cogs/system.py` — `/temp` CPU temperature from `/sys/class/thermal/`
+- [ ] `cogs/system.py` — `/reboot` RPi reboot with confirmation step
+- [ ] `cogs/system.py` — `/logs [lines]` tail journalctl output remotely
+- [ ] `cogs/system.py` — `/network` local IP, public IP, interface info
+- [ ] `services/pihole/client.py` — Pi-hole API client (status, enable, disable, top)
+- [ ] `cogs/pihole.py` — `/pihole status`, `/pihole enable`, `/pihole disable [seconds]`, `/pihole top`
 
 ---
 
