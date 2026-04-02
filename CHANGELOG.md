@@ -18,6 +18,21 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.2] — 2026-04-02
+
+### Fixed
+- `bot/client.py` — added `tree.copy_global_to(guild=guild)` before `tree.sync(guild=guild)` in `on_ready`; slash commands decorated with `@app_commands.command` inside a Cog register to the global tree, not the guild tree, so guild sync was returning 0 commands and the bot was not responding to any slash command
+- `bot/client.py` — split sync error handling into `discord.Forbidden` (missing `applications.commands` OAuth scope) and `discord.HTTPException` for clearer diagnosis
+
+### Added
+- `bot/client.py` — startup channel notification: when `STARTUP_CHANNEL_ID` is set, the bot posts an online message to that channel on every `on_ready`, including the number of synced commands
+- `bot/client.py` — disconnect timestamp tracking: `on_disconnect` records the exact UTC time; `on_resumed` logs the downtime duration in seconds
+- `bot/client.py` — per-command DEBUG log after sync listing each registered command name
+- `config/settings.py` — optional `startup_channel_id` field read from `STARTUP_CHANNEL_ID` env var
+- `.env.example` — documented `STARTUP_CHANNEL_ID` optional variable
+
+---
+
 ## [1.2.1] — 2026-03-28
 
 ### Changed
