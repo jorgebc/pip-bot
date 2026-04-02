@@ -60,6 +60,17 @@ Next to implement (in order):
 - Version: patch for fixes, minor for completed phases. Bump in same commit that closes a PR.
 - CHANGELOG: update `[Unreleased]` on every PR. Convert to versioned entry on release.
 
+## On every PR — checklist
+
+Before committing, always update these if the change warrants it:
+
+| File | When to update |
+|---|---|
+| `CHANGELOG.md` | Every PR — add bullet under `[Unreleased]` |
+| `pyproject.toml` | Bug fix → patch, new feature/phase → minor |
+| `README.md` | New command added or status changed (✅/⏳) |
+| `ROADMAP.md` | Milestone completed → check the box; new milestone planned → add it |
+
 ## Deployment
 
 - Target: Raspberry Pi 4, Debian Bookworm 64-bit, systemd service `pip-bot`.
