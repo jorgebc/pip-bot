@@ -6,15 +6,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
-
-### Changed
+## [1.3.0] — 2026-04-02
 
 ### Added
-
-### Fixed
-
-### Next
+- `services/system.py` — `get_cpu_temperature()` reads millidegree Celsius value from `/sys/class/thermal/thermal_zone0/temp` and returns degrees Celsius; raises `FileNotFoundError` on non-Linux systems, `OSError` on read failure, `ValueError` on bad content
+- `services/system.py` — `get_cpu_temperature_async()` async wrapper that runs the blocking read in a thread pool via `loop.run_in_executor()`
+- `cogs/system.py` — `/temp` slash command: displays current CPU temperature in a color-coded embed (green below 70°C, red at 70°C or above); gracefully handles `FileNotFoundError` when not running on a Linux/RPi system
+- `tests/services/test_system.py` — 6 new unit tests for `get_cpu_temperature()` covering normal conversion, whitespace stripping, `FileNotFoundError`, `OSError`, `ValueError`, and high-temperature path
 
 ---
 

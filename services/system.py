@@ -4,6 +4,7 @@ import asyncio
 import psutil
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from utils.logger import get_logger
 
@@ -89,6 +90,56 @@ async def get_system_status_async() -> SystemStatus:
     except Exception as e:
         logger.error(f"Failed to collect system metrics asynchronously: {e}", exc_info=True)
         raise
+
+
+_THERMAL_PATH = Path("/sys/class/thermal/thermal_zone0/temp")
+
+
+def get_cpu_temperature() -> float:
+    """
+    Read the CPU temperature from the thermal subsystem (BLOCKING).
+
+    Reads millidegree Celsius value from ``/sys/class/thermal/thermal_zone0/temp``
+    and converts it to degrees Celsius.
+
+    Returns:
+        CPU temperature in degrees Celsius.
+
+    Raises:
+        FileNotFoundError: If the thermal zone file does not exist (non-Linux or
+            non-RPi system).
+        OSError: If the file cannot be read.
+        ValueError: If the file contents cannot be parsed as a number.
+    """
+    try:
+        raw = _THERMAL_PATH.read_text(encoding="utf-8").strip()
+        temp_c = int(raw) / 1000.0
+        logger.debug(f"CPU temperature: {temp_c:.1f}°C")
+        return temp_c
+    except FileNotFoundError:
+        logger.error(f"Thermal zone file not found: {_THERMAL_PATH}")
+        raise
+    except (OSError, ValueError) as e:
+        logger.error(f"Failed to read CPU temperature: {e}", exc_info=True)
+        raise
+
+
+async def get_cpu_temperature_async() -> float:
+    """
+    Read the CPU temperature asynchronously.
+
+    Runs the blocking file read in a thread pool to avoid blocking the event loop.
+
+    Returns:
+        CPU temperature in degrees Celsius.
+
+    Raises:
+        FileNotFoundError: If the thermal zone file does not exist.
+        OSError: If the file cannot be read.
+        ValueError: If the file contents cannot be parsed as a number.
+    """
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, get_cpu_temperature)
 
 
 def _format_timedelta(delta: timedelta) -> str:

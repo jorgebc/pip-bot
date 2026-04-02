@@ -23,7 +23,7 @@ Each phase builds on the previous one and has a clear, verifiable completion cri
 - [x] `systemd` unit file — bot runs 24/7 on RPi, restarts on failure
 - [x] `scripts/deploy.sh` — one-command deploy from PC to RPi via git pull
 - [x] `scripts/setup_rpi.sh` — first-time RPi setup script
-- [ ] `cogs/system.py` — `/temp` CPU temperature from `/sys/class/thermal/`
+- [x] `cogs/system.py` — `/temp` CPU temperature from `/sys/class/thermal/`
 - [ ] `cogs/system.py` — `/reboot` RPi reboot with confirmation step
 - [ ] `cogs/system.py` — `/logs [lines]` tail journalctl output remotely
 - [ ] `cogs/system.py` — `/network` local IP, public IP, interface info

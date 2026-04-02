@@ -8,6 +8,7 @@ import pytest
 from services.system import (
     SystemStatus,
     _format_timedelta,
+    get_cpu_temperature,
     get_system_status,
 )
 
@@ -154,6 +155,52 @@ class TestGetSystemStatus:
 
         assert "0m" in status.uptime
         assert status.cpu_percent == 10.0
+
+
+class TestGetCpuTemperature:
+    """Test the get_cpu_temperature function."""
+
+    @patch("services.system._THERMAL_PATH")
+    def test_returns_celsius_value(self, mock_path):
+        """Test that millidegree value is correctly converted to Celsius."""
+        mock_path.read_text.return_value = "51234\n"
+        result = get_cpu_temperature()
+        assert result == pytest.approx(51.234)
+
+    @patch("services.system._THERMAL_PATH")
+    def test_strips_whitespace(self, mock_path):
+        """Test that leading/trailing whitespace is handled."""
+        mock_path.read_text.return_value = "  48000  "
+        result = get_cpu_temperature()
+        assert result == pytest.approx(48.0)
+
+    @patch("services.system._THERMAL_PATH")
+    def test_file_not_found_raises(self, mock_path):
+        """Test that FileNotFoundError is raised when thermal file is absent."""
+        mock_path.read_text.side_effect = FileNotFoundError("no such file")
+        with pytest.raises(FileNotFoundError):
+            get_cpu_temperature()
+
+    @patch("services.system._THERMAL_PATH")
+    def test_os_error_raises(self, mock_path):
+        """Test that OSError is propagated on read failure."""
+        mock_path.read_text.side_effect = OSError("permission denied")
+        with pytest.raises(OSError):
+            get_cpu_temperature()
+
+    @patch("services.system._THERMAL_PATH")
+    def test_invalid_content_raises_value_error(self, mock_path):
+        """Test that non-numeric file content raises ValueError."""
+        mock_path.read_text.return_value = "not_a_number"
+        with pytest.raises(ValueError):
+            get_cpu_temperature()
+
+    @patch("services.system._THERMAL_PATH")
+    def test_high_temperature(self, mock_path):
+        """Test temperature reading at a high value (>=70°C)."""
+        mock_path.read_text.return_value = "75000"
+        result = get_cpu_temperature()
+        assert result >= 70.0
 
 
 class TestSystemStatusDataclass:
