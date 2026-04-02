@@ -113,12 +113,20 @@ install_dependencies() {
     
     # Try the standard location first
     if [ -f "$POETRY_BIN" ]; then
+        if ! output=$($POETRY_BIN lock --no-update 2>&1); then
+            log_error "Poetry lock failed with output: $output"
+            exit 1
+        fi
         if ! output=$($POETRY_BIN install --only main 2>&1); then
             log_error "Poetry install failed with output: $output"
             exit 1
         fi
     # Fall back to poetry in PATH
     elif command -v poetry &> /dev/null; then
+        if ! output=$(poetry lock --no-update 2>&1); then
+            log_error "Poetry lock failed with output: $output"
+            exit 1
+        fi
         if ! output=$(poetry install --only main 2>&1); then
             log_error "Poetry install failed with output: $output"
             exit 1
