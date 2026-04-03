@@ -1,6 +1,7 @@
 """System health monitoring service."""
 
 import asyncio
+import subprocess
 import psutil
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -140,6 +141,49 @@ async def get_cpu_temperature_async() -> float:
     """
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, get_cpu_temperature)
+
+
+def reboot_system() -> None:
+    """
+    Reboot the system immediately (BLOCKING - use async version in Discord cogs).
+
+    Executes ``sudo reboot`` as a subprocess. On a Raspberry Pi running as the
+    ``pi`` user with the appropriate sudoers entry this requires no password.
+
+    Raises:
+        subprocess.CalledProcessError: If the reboot command exits with a
+            non-zero return code.
+        OSError: If the ``reboot`` binary cannot be found or executed.
+    """
+    logger.info("Initiating system reboot via 'sudo reboot'")
+    try:
+        subprocess.run(
+            ["sudo", "reboot"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Reboot command failed (exit {e.returncode}): {e.stderr}")
+        raise
+    except OSError as e:
+        logger.error(f"Failed to execute reboot command: {e}", exc_info=True)
+        raise
+
+
+async def reboot_system_async() -> None:
+    """
+    Reboot the system asynchronously.
+
+    Runs the blocking ``sudo reboot`` call in a thread pool so the event loop
+    is not blocked while the OS processes the reboot request.
+
+    Raises:
+        subprocess.CalledProcessError: If the reboot command exits non-zero.
+        OSError: If the ``reboot`` binary cannot be found or executed.
+    """
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, reboot_system)
 
 
 def _format_timedelta(delta: timedelta) -> str:

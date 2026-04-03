@@ -6,6 +6,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.0] — 2026-04-03
+
+### Added
+- `services/system.py` — `reboot_system()` synchronous function that executes `sudo reboot` via subprocess; raises `subprocess.CalledProcessError` on non-zero exit, `OSError` if the binary is missing
+- `services/system.py` — `reboot_system_async()` async wrapper that runs the blocking call in a thread pool via `loop.run_in_executor()`
+- `cogs/system.py` — `/reboot` slash command with a 30-second confirmation step using `discord.ui.View` with Confirm (red) and Cancel (grey) buttons; reboot only proceeds on explicit confirmation; handles timeout gracefully
+- `tests/services/test_system.py` — 4 new unit tests for `reboot_system()` and `reboot_system_async()` covering normal execution, `CalledProcessError`, `OSError`, and async delegation
+
+---
+
 ## [1.3.1] — 2026-04-03
 
 ### Fixed
