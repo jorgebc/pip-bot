@@ -6,6 +6,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.5.0] — 2026-04-03
+
+### Added
+- `services/system.py` — `get_journal_logs(lines)` synchronous function that runs `journalctl -u pip-bot -n <lines> --no-pager`; raises `subprocess.CalledProcessError` on non-zero exit, `FileNotFoundError` if journalctl is absent, `OSError` on execution failure; lines is clamped to [1, 50]
+- `services/system.py` — `get_journal_logs_async(lines)` async wrapper that runs the blocking call in a thread pool via `loop.run_in_executor()`
+- `cogs/system.py` — `/logs [lines]` slash command: displays the last N lines (default 20, max 50) from the bot's systemd journal in a code block; gracefully handles non-systemd systems and truncates output that exceeds the Discord 2000-character limit
+- `tests/services/test_system.py` — 8 new unit tests for `get_journal_logs()` and `get_journal_logs_async()` covering normal output, argument passing, line clamping (min/max), `CalledProcessError`, `FileNotFoundError`, `OSError`, and async delegation
+
+---
+
 ## [1.4.1] — 2026-04-03
 
 ### Added

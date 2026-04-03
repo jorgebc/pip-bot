@@ -6,7 +6,12 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from services.system import get_cpu_temperature_async, get_system_status_async, reboot_system_async
+from services.system import (
+    get_cpu_temperature_async,
+    get_journal_logs_async,
+    get_system_status_async,
+    reboot_system_async,
+)
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -320,6 +325,90 @@ class SystemCog(commands.Cog):
                 )
             except discord.HTTPException as followup_error:
                 logger.error(f"Failed to send reboot error response: {followup_error}")
+
+    @app_commands.command(
+        name="logs", description="Show the last N lines from the bot journal (default 20, max 50)"
+    )
+    @app_commands.describe(lines="Number of log lines to retrieve (1–50, default 20)")
+    @app_commands.checks.cooldown(1, 30)
+    async def logs(self, interaction: discord.Interaction, lines: int = 20) -> None:
+        """
+        Display the last N lines from the bot's systemd journal.
+
+        Runs ``journalctl -u pip-bot`` on the host and returns the output in a
+        code block. Useful for remote diagnosis without SSH access.
+
+        Args:
+            interaction: Discord interaction object.
+            lines: Number of log lines to retrieve (clamped to 1–50).
+        """
+        # Clamp here so the description shown to users is always accurate
+        lines = max(1, min(lines, 50))
+        try:
+            async with asyncio.timeout(15):
+                await interaction.response.defer(ephemeral=True)
+                output = await get_journal_logs_async(lines)
+
+                if not output.strip():
+                    await interaction.followup.send(
+                        "No log output returned.", ephemeral=True
+                    )
+                    return
+
+                # Discord message limit is 2000 characters.
+                # Reserve space for the code-block delimiters (```\n...\n``` = 8 chars).
+                max_content = 2000 - 8
+                truncated = False
+                if len(output) > max_content:
+                    output = output[-max_content:]
+                    truncated = True
+
+                message = f"```\n{output}\n```"
+                if truncated:
+                    message = "*(output truncated — showing tail)*\n" + message
+
+                await interaction.followup.send(message, ephemeral=True)
+                logger.debug(f"Responded to /logs command ({lines} lines)")
+
+        except FileNotFoundError:
+            logger.error("journalctl not found — not running on a systemd system?")
+            try:
+                await interaction.followup.send(
+                    "❌ `journalctl` is not available on this system.",
+                    ephemeral=True,
+                )
+            except Exception as e:
+                logger.error(f"Failed to send error response: {e}")
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"journalctl failed with exit code {e.returncode}")
+            try:
+                await interaction.followup.send(
+                    f"❌ Journal read failed (exit code {e.returncode}).",
+                    ephemeral=True,
+                )
+            except Exception as followup_error:
+                logger.error(f"Failed to send error response: {followup_error}")
+
+        except asyncio.TimeoutError:
+            logger.error("Timeout reading journal logs")
+            try:
+                await interaction.followup.send(
+                    "❌ Request timed out reading journal logs.",
+                    ephemeral=True,
+                )
+            except Exception as e:
+                logger.error(f"Failed to send timeout error: {e}")
+
+        except Exception as e:
+            logger.error(f"Error in /logs command: {e}", exc_info=True)
+            try:
+                await interaction.followup.send(
+                    f"❌ Error retrieving logs: {str(e)}",
+                    ephemeral=True,
+                )
+            except Exception as followup_error:
+                logger.error(f"Failed to send error response: {followup_error}")
 
     @app_commands.command(name="help", description="Show all available commands")
     @app_commands.checks.cooldown(1, 60)

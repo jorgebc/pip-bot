@@ -202,7 +202,7 @@ pip-bot/
 
 These are the concrete commands the bot must implement in Phase 1. They serve as the development anchor — all architectural decisions are validated against these.
 
-**Status: 5 of 10 commands implemented. RPi extended control (commands 6–9) is next. NAS integration (commands 10–12) is Phase 2.**
+**Status: 6 of 10 commands implemented. RPi extended control (commands 7–9) is next. NAS integration (commands 10–12) is Phase 2.**
 
 ### `/ping`
 ✅ **Implemented.** Responds with `Pong!` and current latency. Used to verify the bot is alive.
@@ -220,7 +220,7 @@ These are the concrete commands the bot must implement in Phase 1. They serve as
 ✅ **Implemented.** Reboots the Raspberry Pi. Shows an ephemeral confirmation message with Confirm and Cancel buttons; reboot only proceeds on explicit confirmation within 30 seconds. Executes `sudo reboot` via subprocess.
 
 ### `/logs [lines]`
-⏳ **Pending.** Returns the last N lines (default 20, max 50) from the bot's systemd journal (`journalctl -u pip-bot`). Useful for remote diagnosis without SSH access.
+✅ **Implemented.** Returns the last N lines (default 20, max 50) from the bot's systemd journal (`journalctl -u pip-bot`). Useful for remote diagnosis without SSH access. Output is shown in a code block; long output is truncated at the Discord 2000-character limit.
 
 ### `/network`
 ⏳ **Pending.** Returns the current network state of the Raspberry Pi: local IP address, public IP address, and number of connected network interfaces. Uses `psutil` for local info and a lightweight external call for public IP.
