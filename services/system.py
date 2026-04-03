@@ -42,8 +42,10 @@ def get_system_status() -> SystemStatus:
         uptime_delta = datetime.now() - boot_time
         uptime_str = _format_timedelta(uptime_delta)
 
-        # Get CPU usage (non-blocking instantaneous value)
-        cpu_percent = psutil.cpu_percent(interval=None)
+        # Get CPU usage with a short blocking interval for an accurate reading.
+        # interval=0.5 is acceptable here because this function runs inside
+        # run_in_executor (a thread pool), never on the event loop directly.
+        cpu_percent = psutil.cpu_percent(interval=0.5)
 
         # Get RAM usage
         ram = psutil.virtual_memory()
