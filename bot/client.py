@@ -24,20 +24,20 @@ class PipBot(commands.Bot):
         intents = discord.Intents.default()
         intents.message_content = True
 
-        super().__init__(
+        super().__init__(  # type: ignore[call-arg]
             command_prefix="!",
             intents=intents,
             sync_commands_in_init=False,
         )
         self._disconnect_at: datetime.datetime | None = None
-        self._ready = False
+        self._startup_done = False
 
     async def on_ready(self) -> None:
         """Log bot startup status, sync commands to guild, and notify startup channel."""
-        if self._ready:
+        if self._startup_done:
             logger.debug("on_ready fired again (reconnect) — skipping duplicate startup logic")
             return
-        self._ready = True
+        self._startup_done = True
 
         if not self.user:
             logger.warning("on_ready called but user not set yet")
