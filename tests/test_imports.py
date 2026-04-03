@@ -35,12 +35,12 @@ class TestImports:
         """Test that importing main modules doesn't cause circular import errors."""
         # This is a smoke test - if circular imports exist, this will raise ImportError
         try:
-            import config.settings
-            import utils.logger
-            import utils.filters
-            import bot.client
-            import services.system
-            import services.base
+            import config.settings  # noqa: F401
+            import utils.logger  # noqa: F401
+            import utils.filters  # noqa: F401
+            import bot.client  # noqa: F401
+            import services.system  # noqa: F401
+            import services.base  # noqa: F401
             assert True
         except ImportError as e:
             pytest.fail(f"Circular import detected: {e}")
