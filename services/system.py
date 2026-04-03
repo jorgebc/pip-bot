@@ -186,6 +186,71 @@ async def reboot_system_async() -> None:
     await loop.run_in_executor(None, reboot_system)
 
 
+_LOGS_MIN_LINES = 1
+_LOGS_MAX_LINES = 50
+
+
+def get_journal_logs(lines: int = 20) -> str:
+    """
+    Retrieve the last N lines from the bot's systemd journal (BLOCKING).
+
+    Runs ``journalctl -u pip-bot -n <lines> --no-pager`` and returns stdout.
+    The ``lines`` argument is clamped to the range [1, 50].
+
+    Args:
+        lines: Number of log lines to retrieve (default 20, max 50).
+
+    Returns:
+        String containing the journal log output.
+
+    Raises:
+        subprocess.CalledProcessError: If journalctl exits with a non-zero code.
+        FileNotFoundError: If journalctl is not found (non-systemd system).
+        OSError: If the command cannot be executed.
+    """
+    lines = max(_LOGS_MIN_LINES, min(lines, _LOGS_MAX_LINES))
+    logger.debug(f"Fetching last {lines} journal lines for pip-bot")
+    try:
+        result = subprocess.run(
+            ["journalctl", "-u", "pip-bot", "-n", str(lines), "--no-pager", "--output=short"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        logger.error(f"journalctl exited with code {e.returncode}: {e.stderr}")
+        raise
+    except FileNotFoundError:
+        logger.error("journalctl not found — not running on a systemd system?")
+        raise
+    except OSError as e:
+        logger.error(f"Failed to execute journalctl: {e}", exc_info=True)
+        raise
+
+
+async def get_journal_logs_async(lines: int = 20) -> str:
+    """
+    Retrieve the last N journal lines asynchronously.
+
+    Runs the blocking ``journalctl`` call in a thread pool to avoid blocking
+    the event loop.
+
+    Args:
+        lines: Number of log lines to retrieve (default 20, max 50).
+
+    Returns:
+        String containing the journal log output.
+
+    Raises:
+        subprocess.CalledProcessError: If journalctl exits non-zero.
+        FileNotFoundError: If journalctl is not found.
+        OSError: If the command cannot be executed.
+    """
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, get_journal_logs, lines)
+
+
 def _format_timedelta(delta: timedelta) -> str:
     """
     Format a timedelta into a human-readable string.

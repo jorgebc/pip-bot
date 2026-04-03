@@ -10,6 +10,7 @@ from services.system import (
     SystemStatus,
     _format_timedelta,
     get_cpu_temperature,
+    get_journal_logs,
     get_system_status,
     reboot_system,
 )
@@ -246,6 +247,84 @@ class TestRebootSystem:
         await reboot_system_async()
         mock_run.assert_called_once_with(
             ["sudo", "reboot"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+
+class TestGetJournalLogs:
+    """Test the get_journal_logs function."""
+
+    @patch("services.system.subprocess.run")
+    def test_returns_stdout(self, mock_run):
+        """Test that stdout from journalctl is returned."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="Apr 03 12:00:00 pip-bot[1]: started\n")
+        result = get_journal_logs(lines=5)
+        assert result == "Apr 03 12:00:00 pip-bot[1]: started\n"
+
+    @patch("services.system.subprocess.run")
+    def test_calls_journalctl_with_correct_args(self, mock_run):
+        """Test that journalctl is called with the expected arguments."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="")
+        get_journal_logs(lines=10)
+        mock_run.assert_called_once_with(
+            ["journalctl", "-u", "pip-bot", "-n", "10", "--no-pager", "--output=short"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+    @patch("services.system.subprocess.run")
+    def test_clamps_lines_to_max(self, mock_run):
+        """Test that lines > 50 is clamped to 50."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="")
+        get_journal_logs(lines=999)
+        args = mock_run.call_args[0][0]
+        assert "50" in args
+
+    @patch("services.system.subprocess.run")
+    def test_clamps_lines_to_min(self, mock_run):
+        """Test that lines < 1 is clamped to 1."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="")
+        get_journal_logs(lines=0)
+        args = mock_run.call_args[0][0]
+        assert "1" in args
+
+    @patch("services.system.subprocess.run")
+    def test_called_process_error_raised(self, mock_run):
+        """Test that CalledProcessError from journalctl is propagated."""
+        mock_run.side_effect = subprocess.CalledProcessError(
+            returncode=1, cmd=["journalctl"], stderr="unit not found"
+        )
+        with pytest.raises(subprocess.CalledProcessError):
+            get_journal_logs()
+
+    @patch("services.system.subprocess.run")
+    def test_file_not_found_raised(self, mock_run):
+        """Test that FileNotFoundError is raised when journalctl is absent."""
+        mock_run.side_effect = FileNotFoundError("No such file or directory")
+        with pytest.raises(FileNotFoundError):
+            get_journal_logs()
+
+    @patch("services.system.subprocess.run")
+    def test_os_error_raised(self, mock_run):
+        """Test that OSError is propagated on execution failure."""
+        mock_run.side_effect = OSError("permission denied")
+        with pytest.raises(OSError):
+            get_journal_logs()
+
+    @patch("services.system.subprocess.run")
+    @pytest.mark.asyncio
+    async def test_async_wrapper_delegates(self, mock_run):
+        """Test that get_journal_logs_async delegates to the blocking function."""
+        from services.system import get_journal_logs_async
+
+        mock_run.return_value = MagicMock(returncode=0, stdout="log line\n")
+        result = await get_journal_logs_async(lines=3)
+        assert result == "log line\n"
+        mock_run.assert_called_once_with(
+            ["journalctl", "-u", "pip-bot", "-n", "3", "--no-pager", "--output=short"],
             check=True,
             capture_output=True,
             text=True,
