@@ -168,7 +168,7 @@ class TestGetLogger:
     def test_get_logger_invalid_log_level_raises_error(self, temp_logs_dir):
         """Test that invalid LOG_LEVEL raises ConfigError."""
         from utils.validators import ConfigError
-        
+
         with pytest.raises(ConfigError, match="LOG_LEVEL must be one of"):
             get_logger("test_module")
 

@@ -1,10 +1,11 @@
 """System health monitoring service."""
 
 import subprocess
-import psutil
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
+
+import psutil
 
 from utils.concurrency import run_blocking
 from utils.logger import get_logger
