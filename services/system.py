@@ -84,7 +84,7 @@ async def get_system_status_async() -> SystemStatus:
     Raises:
         Exception: If system metrics cannot be collected.
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     try:
         status = await loop.run_in_executor(None, get_system_status)
         return status
@@ -139,7 +139,7 @@ async def get_cpu_temperature_async() -> float:
         OSError: If the file cannot be read.
         ValueError: If the file contents cannot be parsed as a number.
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, get_cpu_temperature)
 
 
@@ -182,7 +182,7 @@ async def reboot_system_async() -> None:
         subprocess.CalledProcessError: If the reboot command exits non-zero.
         OSError: If the ``reboot`` binary cannot be found or executed.
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, reboot_system)
 
 
@@ -247,7 +247,7 @@ async def get_journal_logs_async(lines: int = 20) -> str:
         FileNotFoundError: If journalctl is not found.
         OSError: If the command cannot be executed.
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(None, get_journal_logs, lines)
 
 

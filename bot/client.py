@@ -30,9 +30,15 @@ class PipBot(commands.Bot):
             sync_commands_in_init=False,
         )
         self._disconnect_at: datetime.datetime | None = None
+        self._ready = False
 
     async def on_ready(self) -> None:
         """Log bot startup status, sync commands to guild, and notify startup channel."""
+        if self._ready:
+            logger.debug("on_ready fired again (reconnect) — skipping duplicate startup logic")
+            return
+        self._ready = True
+
         if not self.user:
             logger.warning("on_ready called but user not set yet")
             return

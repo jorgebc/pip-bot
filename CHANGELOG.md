@@ -6,6 +6,21 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- `services/system.py` — replaced all `asyncio.get_event_loop()` calls with `asyncio.get_running_loop()` to fix deprecation warning on Python 3.12+
+- `bot/client.py` — added `_ready` flag to guard `on_ready()` against duplicate execution on Discord gateway reconnects
+
+### Added
+- `pyproject.toml` — added `pytest-cov`, `mypy`, `bandit[toml]`, and `pip-audit` to `[dependency-groups] dev` so security and coverage tools run locally, not just in CI
+- `pyproject.toml` — `[tool.pytest.ini_options]` with `--cov`, `--cov-report=term-missing`, and `--cov-fail-under=85` to enforce coverage threshold on every test run
+- `pyproject.toml` — `[tool.mypy]` section (`strict=false`, `ignore_missing_imports=true`) and `[tool.bandit]` section with medium-severity threshold
+- `pyproject.toml` — `[tool.ruff]` section pinning `line-length=100` and `select=["E","F","W","I","UP"]` for reproducible lint behaviour across ruff upgrades
+- `.github/workflows/pr-validation.yml` — `mypy` type-check step; updated `bandit` to use `pyproject.toml` config via `-c pyproject.toml`; added `pytest-cov` and `mypy` to CI install
+
+---
+
 ## [1.5.0] — 2026-04-03
 
 ### Added
