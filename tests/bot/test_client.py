@@ -1,5 +1,6 @@
 """Tests for bot/client.py module."""
 
+import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
@@ -65,6 +66,17 @@ class TestPipBotOnReady:
             mock_logger.warning.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_on_ready_skips_on_second_call(self):
+        """Test that on_ready is a no-op on reconnects after startup_done is set."""
+        bot = PipBot()
+        bot._startup_done = True
+
+        with patch("bot.client.logger") as mock_logger:
+            await bot.on_ready()
+            mock_logger.debug.assert_called_once()
+            assert "reconnect" in mock_logger.debug.call_args[0][0].lower()
+
+    @pytest.mark.asyncio
     async def test_on_ready_syncs_when_user_is_set(self):
         """Test that on_ready syncs commands when user is set."""
         bot = PipBot()
@@ -78,3 +90,46 @@ class TestPipBotOnReady:
                 # Verify that tree.sync would be called if user was set
                 # In real execution, self.user would be set by discord.py
 
+
+class TestPipBotEventHandlers:
+    """Test on_error, on_disconnect, and on_resumed event handlers."""
+
+    @pytest.mark.asyncio
+    async def test_on_error_logs_event_name(self):
+        """on_error should log the event name."""
+        bot = PipBot()
+        with patch("bot.client.logger") as mock_logger:
+            await bot.on_error("on_message")
+            mock_logger.error.assert_called_once()
+            assert "on_message" in mock_logger.error.call_args[0][0]
+
+    @pytest.mark.asyncio
+    async def test_on_disconnect_records_timestamp(self):
+        """on_disconnect should record the disconnect time."""
+        bot = PipBot()
+        assert bot._disconnect_at is None
+        with patch("bot.client.logger"):
+            await bot.on_disconnect()
+        assert bot._disconnect_at is not None
+        assert isinstance(bot._disconnect_at, datetime.datetime)
+
+    @pytest.mark.asyncio
+    async def test_on_resumed_with_prior_disconnect_logs_downtime(self):
+        """on_resumed should log downtime when _disconnect_at is set."""
+        bot = PipBot()
+        bot._disconnect_at = datetime.datetime.now(datetime.UTC) - datetime.timedelta(seconds=5)
+        with patch("bot.client.logger") as mock_logger:
+            await bot.on_resumed()
+        mock_logger.info.assert_called_once()
+        assert "disconnected for" in mock_logger.info.call_args[0][0].lower()
+        assert bot._disconnect_at is None
+
+    @pytest.mark.asyncio
+    async def test_on_resumed_without_prior_disconnect_logs_simple_message(self):
+        """on_resumed should log a simple message when no disconnect was recorded."""
+        bot = PipBot()
+        assert bot._disconnect_at is None
+        with patch("bot.client.logger") as mock_logger:
+            await bot.on_resumed()
+        mock_logger.info.assert_called_once()
+        assert "resumed" in mock_logger.info.call_args[0][0].lower()
