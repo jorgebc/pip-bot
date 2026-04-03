@@ -6,6 +6,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.1] — 2026-04-03
+
+### Added
+- `.github/workflows/pr-validation.yml` — PR validation CI: ruff lint, pytest, pip-audit, bandit in a single job
+- `.github/dependabot.yml` — weekly Dependabot configuration for the `pip` ecosystem targeting `main`
+
+---
+
 ## [1.4.0] — 2026-04-03
 
 ### Added
