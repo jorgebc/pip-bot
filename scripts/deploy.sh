@@ -89,6 +89,15 @@ pull_code() {
         exit 1
     fi
     
+    # Warn about any other modified or untracked files that will be lost.
+    # We exclude .env because it is already backed up above.
+    dirty=$(git status --porcelain | grep -v "^.. \.env")
+    if [ -n "$dirty" ]; then
+        log_warn "The following files will be discarded by git reset:"
+        echo "$dirty"
+        log_warn "Back them up now if needed (Ctrl-C to abort)."
+    fi
+
     if ! git reset --hard origin/main &> /dev/null; then
         log_error "Failed to reset to origin/main"
         exit 1
