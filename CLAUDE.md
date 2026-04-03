@@ -4,6 +4,16 @@ Context file for Claude Code sessions. Read this before writing any code.
 
 ---
 
+## First-time setup
+
+```bash
+poetry install                  # installs main + dev deps
+poetry run pre-commit install   # register commit hook (ruff + mypy)
+poetry run pre-commit install --hook-type pre-push  # register push hook (pytest)
+```
+
+Run once per clone. After this, every `git commit` checks lint + types and every `git push` runs the full test suite — matching CI exactly.
+
 ## Commands
 
 ```bash
@@ -18,6 +28,12 @@ poetry run pytest tests/services/nas/test_client.py  # single file
 # Lint / format
 poetry run ruff check .
 poetry run ruff format .
+
+# Type check (mirrors CI)
+poetry run mypy bot/ cogs/ services/ config/ utils/
+
+# Run all pre-commit checks manually (without committing)
+poetry run pre-commit run --all-files
 ```
 
 ## Architecture
