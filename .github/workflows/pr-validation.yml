@@ -31,4 +31,4 @@ jobs:
         run: pip-audit
 
       - name: Security scan
-        run: bandit -r bot/ cogs/ services/ config/ utils/ -q
+        run: bandit -r bot/ cogs/ services/ config/ utils/ -q -ll
