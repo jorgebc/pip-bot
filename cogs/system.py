@@ -2,6 +2,7 @@
 
 import asyncio
 import subprocess
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -42,7 +43,7 @@ class SystemCog(commands.Cog):
                     ephemeral=True,
                 )
                 logger.debug(f"Responded to /ping command (latency: {latency_ms}ms)")
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error("Timeout sending /ping response")
             try:
                 await interaction.response.send_message(
@@ -122,7 +123,7 @@ class SystemCog(commands.Cog):
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 logger.debug("Responded to /status command")
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error("Timeout collecting system status")
             # Only try to respond if we haven't already deferred
             try:
@@ -193,7 +194,7 @@ class SystemCog(commands.Cog):
             except Exception as e:
                 logger.error(f"Failed to send error response: {e}")
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error("Timeout reading CPU temperature")
             try:
                 await interaction.response.send_message(
@@ -213,7 +214,7 @@ class SystemCog(commands.Cog):
             except Exception as followup_error:
                 logger.error(f"Failed to send error response: {followup_error}")
 
-    @app_commands.command(name="reboot", description="Reboot the Raspberry Pi (requires confirmation)")
+    @app_commands.command(name="reboot", description="Reboot the Raspberry Pi (confirm required)")
     @app_commands.checks.cooldown(1, 300)
     async def reboot(self, interaction: discord.Interaction) -> None:
         """
@@ -348,7 +349,7 @@ class SystemCog(commands.Cog):
             except Exception as followup_error:
                 logger.error(f"Failed to send error response: {followup_error}")
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error("Timeout reading journal logs")
             try:
                 await interaction.followup.send(
@@ -428,7 +429,7 @@ class SystemCog(commands.Cog):
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 logger.debug("Responded to /help command")
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error("Timeout in /help command")
             try:
                 await interaction.response.send_message(
