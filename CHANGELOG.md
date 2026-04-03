@@ -6,7 +6,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [1.6.0] — 2026-04-03
 
 ### Fixed
 - `services/system.py` — replaced all `asyncio.get_event_loop()` calls with `asyncio.get_running_loop()` to eliminate deprecation warning on Python 3.12+
@@ -16,6 +16,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - `utils/logger.py` — call `os.chmod(log_dir, 0o700)` after creating `logs/` so only the bot owner can read log files
 - `scripts/deploy.sh` — add `git status --porcelain` check before `git reset --hard` to warn about modified/untracked files that would be silently discarded (`.env` excluded, already backed up)
 - `scripts/setup_rpi.sh` — add `check_reboot_sudoers()` that inspects `sudo -l -n` for a NOPASSWD reboot rule and prints the exact `visudo` line to add if it is missing
+- `tests/services/test_system.py` — updated `cpu_percent` assertion from `interval=None` to `interval=0.5`
 
 ### Added
 - `pyproject.toml` — added `pytest-cov`, `mypy`, `bandit[toml]`, and `pip-audit` to `[dependency-groups] dev` so security and coverage tools run locally, not just in CI
