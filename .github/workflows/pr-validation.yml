@@ -1,0 +1,34 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install .
+          pip install "pytest>=9.0.2,<10.0.0" "pytest-asyncio>=1.3.0,<2.0.0" "ruff>=0.15.7,<0.16.0" "bandit>=1.8.0,<2.0.0" "pip-audit>=2.7.0,<3.0.0"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: pytest
+
+      - name: Dependency audit
+        run: pip-audit
+
+      - name: Security scan
+        run: bandit -r bot/ cogs/ services/ config/ utils/ -q

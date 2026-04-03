@@ -6,6 +6,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- `.github/workflows/pr-validation.yml` — PR validation CI: ruff lint, pytest, pip-audit, bandit in a single job
+
+---
+
 ## [1.4.0] — 2026-04-03
 
 ### Added

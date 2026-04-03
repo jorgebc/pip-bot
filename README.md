@@ -537,6 +537,21 @@ DISCORD_GUILD_ID=<your-server-id>
 
 ---
 
+## CI
+
+Every pull request targeting `main` runs `.github/workflows/pr-validation.yml` — a single job on `ubuntu-latest` with Python 3.11.
+
+| Step | Tool | Purpose |
+|---|---|---|
+| Lint | `ruff check .` | Style and error enforcement |
+| Test | `pytest` | Full unit test suite |
+| Dependency audit | `pip-audit` | Known CVE detection in dependencies |
+| Security scan | `bandit -r bot/ cogs/ services/ config/ utils/` | Static security analysis |
+
+PRs cannot be merged until all four checks pass.
+
+---
+
 ## Contributing / Development Guidelines
 
 This project is developed with strong AI assistance. When generating or modifying code:
