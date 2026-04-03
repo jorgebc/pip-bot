@@ -41,7 +41,7 @@ class TokenSanitizationFilter(logging.Filter):
         # Replace values in key=value patterns for sensitive keys
         for key in self.SENSITIVE_KEYS:
             pattern = rf"({re.escape(key)})=(['\"])([^'\"]+)(['\"])"
-            message = re.sub(pattern, rf"\1=\2***\4", message, flags=re.IGNORECASE)
+            message = re.sub(pattern, r"\1=\2***\4", message, flags=re.IGNORECASE)
 
         return message
 

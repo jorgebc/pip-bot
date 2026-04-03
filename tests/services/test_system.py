@@ -1,5 +1,6 @@
 """Tests for services/system.py module."""
 
+import subprocess
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
@@ -10,6 +11,7 @@ from services.system import (
     _format_timedelta,
     get_cpu_temperature,
     get_system_status,
+    reboot_system,
 )
 
 
@@ -201,6 +203,53 @@ class TestGetCpuTemperature:
         mock_path.read_text.return_value = "75000"
         result = get_cpu_temperature()
         assert result >= 70.0
+
+
+class TestRebootSystem:
+    """Test the reboot_system and reboot_system_async functions."""
+
+    @patch("services.system.subprocess.run")
+    def test_reboot_calls_sudo_reboot(self, mock_run):
+        """Test that reboot_system invokes 'sudo reboot'."""
+        mock_run.return_value = MagicMock(returncode=0)
+        reboot_system()
+        mock_run.assert_called_once_with(
+            ["sudo", "reboot"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+    @patch("services.system.subprocess.run")
+    def test_reboot_called_process_error_raised(self, mock_run):
+        """Test that CalledProcessError is propagated when the command fails."""
+        mock_run.side_effect = subprocess.CalledProcessError(
+            returncode=1, cmd=["sudo", "reboot"], stderr="permission denied"
+        )
+        with pytest.raises(subprocess.CalledProcessError):
+            reboot_system()
+
+    @patch("services.system.subprocess.run")
+    def test_reboot_os_error_raised(self, mock_run):
+        """Test that OSError is propagated when the binary is missing."""
+        mock_run.side_effect = OSError("No such file or directory")
+        with pytest.raises(OSError):
+            reboot_system()
+
+    @patch("services.system.subprocess.run")
+    @pytest.mark.asyncio
+    async def test_reboot_system_async_calls_blocking(self, mock_run):
+        """Test that reboot_system_async delegates to the blocking reboot_system."""
+        from services.system import reboot_system_async
+
+        mock_run.return_value = MagicMock(returncode=0)
+        await reboot_system_async()
+        mock_run.assert_called_once_with(
+            ["sudo", "reboot"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
 
 
 class TestSystemStatusDataclass:

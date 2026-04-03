@@ -202,7 +202,7 @@ pip-bot/
 
 These are the concrete commands the bot must implement in Phase 1. They serve as the development anchor — all architectural decisions are validated against these.
 
-**Status: 3 of 10 commands implemented. RPi extended control (commands 4–9) is next. NAS integration (commands 10–12) is Phase 2.**
+**Status: 5 of 10 commands implemented. RPi extended control (commands 6–9) is next. NAS integration (commands 10–12) is Phase 2.**
 
 ### `/ping`
 ✅ **Implemented.** Responds with `Pong!` and current latency. Used to verify the bot is alive.
@@ -214,10 +214,10 @@ These are the concrete commands the bot must implement in Phase 1. They serve as
 ✅ **Implemented.** Auto-generated command listing all available commands with a one-line description. Built using discord.py's built-in help system.
 
 ### `/temp`
-⏳ **Pending.** Returns the current CPU temperature of the Raspberry Pi. Reads from `/sys/class/thermal/thermal_zone0/temp`. Critical for monitoring thermals on a board without active cooling.
+✅ **Implemented.** Returns the current CPU temperature of the Raspberry Pi. Reads from `/sys/class/thermal/thermal_zone0/temp`. Color-coded embed: green below 70°C, red at 70°C or above.
 
 ### `/reboot`
-⏳ **Pending.** Reboots the Raspberry Pi. Requires an explicit confirmation step (second command or button) to prevent accidental reboots. Sends a confirmation message to Discord before the reboot executes.
+✅ **Implemented.** Reboots the Raspberry Pi. Shows an ephemeral confirmation message with Confirm and Cancel buttons; reboot only proceeds on explicit confirmation within 30 seconds. Executes `sudo reboot` via subprocess.
 
 ### `/logs [lines]`
 ⏳ **Pending.** Returns the last N lines (default 20, max 50) from the bot's systemd journal (`journalctl -u pip-bot`). Useful for remote diagnosis without SSH access.

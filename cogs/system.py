@@ -1,14 +1,58 @@
-"""System commands: /ping, /status, /help."""
+"""System commands: /ping, /status, /help, /temp, /reboot."""
 
 import asyncio
+import subprocess
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from services.system import get_cpu_temperature_async, get_system_status_async
+from services.system import get_cpu_temperature_async, get_system_status_async, reboot_system_async
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
+
+_REBOOT_CONFIRM_TIMEOUT = 30  # seconds
+
+
+class _RebootConfirmView(discord.ui.View):
+    """Ephemeral confirmation view for the /reboot command.
+
+    Sets ``confirmed`` to ``True`` when the user presses Confirm, ``False``
+    when they press Cancel, and leaves it ``None`` on timeout.
+    """
+
+    def __init__(self) -> None:
+        """Initialise the view with a 30-second timeout."""
+        super().__init__(timeout=_REBOOT_CONFIRM_TIMEOUT)
+        self.confirmed: bool | None = None
+
+    @discord.ui.button(label="Confirm", style=discord.ButtonStyle.danger)
+    async def confirm_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ) -> None:
+        """Handle the Confirm button press.
+
+        Args:
+            interaction: Discord interaction from the button click.
+            button: The button that was pressed.
+        """
+        self.confirmed = True
+        await interaction.response.defer()
+        self.stop()
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    async def cancel_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ) -> None:
+        """Handle the Cancel button press.
+
+        Args:
+            interaction: Discord interaction from the button click.
+            button: The button that was pressed.
+        """
+        self.confirmed = False
+        await interaction.response.defer()
+        self.stop()
 
 
 class SystemCog(commands.Cog):
@@ -205,6 +249,77 @@ class SystemCog(commands.Cog):
                 )
             except Exception as followup_error:
                 logger.error(f"Failed to send error response: {followup_error}")
+
+    @app_commands.command(name="reboot", description="Reboot the Raspberry Pi (requires confirmation)")
+    @app_commands.checks.cooldown(1, 300)
+    async def reboot(self, interaction: discord.Interaction) -> None:
+        """
+        Reboot the Raspberry Pi after an explicit confirmation step.
+
+        Sends an ephemeral message with Confirm and Cancel buttons. The reboot
+        only proceeds when the user presses Confirm within 30 seconds.
+
+        Args:
+            interaction: Discord interaction object.
+        """
+        view = _RebootConfirmView()
+        await interaction.response.send_message(
+            "⚠️ Are you sure you want to reboot the Raspberry Pi?",
+            view=view,
+            ephemeral=True,
+        )
+        await view.wait()
+
+        if view.confirmed is None:
+            # Timed out — edit the original message
+            try:
+                await interaction.edit_original_response(
+                    content="⏱️ Reboot cancelled — confirmation timed out.",
+                    view=None,
+                )
+            except discord.HTTPException as e:
+                logger.error(f"Failed to edit timeout message: {e}")
+            return
+
+        if not view.confirmed:
+            try:
+                await interaction.edit_original_response(
+                    content="✅ Reboot cancelled.",
+                    view=None,
+                )
+            except discord.HTTPException as e:
+                logger.error(f"Failed to edit cancel message: {e}")
+            return
+
+        # User confirmed — notify and reboot
+        try:
+            await interaction.edit_original_response(
+                content="🔄 Rebooting the Raspberry Pi now…",
+                view=None,
+            )
+        except discord.HTTPException as e:
+            logger.error(f"Failed to send reboot confirmation message: {e}")
+
+        try:
+            await reboot_system_async()
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Reboot command failed: {e}")
+            try:
+                await interaction.edit_original_response(
+                    content=f"❌ Reboot failed: command exited with code {e.returncode}.",
+                    view=None,
+                )
+            except discord.HTTPException as followup_error:
+                logger.error(f"Failed to send reboot error response: {followup_error}")
+        except OSError as e:
+            logger.error(f"Reboot OS error: {e}", exc_info=True)
+            try:
+                await interaction.edit_original_response(
+                    content="❌ Reboot failed: could not execute reboot command.",
+                    view=None,
+                )
+            except discord.HTTPException as followup_error:
+                logger.error(f"Failed to send reboot error response: {followup_error}")
 
     @app_commands.command(name="help", description="Show all available commands")
     @app_commands.checks.cooldown(1, 60)
