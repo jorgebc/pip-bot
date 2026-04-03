@@ -550,6 +550,8 @@ Every pull request targeting `main` runs `.github/workflows/pr-validation.yml` â
 
 PRs cannot be merged until all four checks pass.
 
+Dependabot runs weekly (`pip` ecosystem) and opens PRs against `main` for dependency updates. Those PRs go through the same validation pipeline.
+
 ---
 
 ## Contributing / Development Guidelines
