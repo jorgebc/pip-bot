@@ -9,15 +9,27 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
-- `services/system.py` — replaced all `asyncio.get_event_loop()` calls with `asyncio.get_running_loop()` to fix deprecation warning on Python 3.12+
-- `bot/client.py` — added `_ready` flag to guard `on_ready()` against duplicate execution on Discord gateway reconnects
+- `services/system.py` — replaced all `asyncio.get_event_loop()` calls with `asyncio.get_running_loop()` to eliminate deprecation warning on Python 3.12+
+- `services/system.py` — changed `psutil.cpu_percent(interval=None)` to `interval=0.5` for an accurate one-sample CPU reading (safe inside `run_in_executor`)
+- `bot/client.py` — added `_ready` flag to guard `on_ready()` against duplicate command syncs and startup messages on Discord gateway reconnects
+- `utils/filters.py` — tightened `TokenSanitizationFilter` regex to the exact three-segment Discord token format, reducing false positives on UUIDs and base64 strings in debug logs; fixed dangling `\1` back-reference in substitution
+- `utils/logger.py` — call `os.chmod(log_dir, 0o700)` after creating `logs/` so only the bot owner can read log files
+- `scripts/deploy.sh` — add `git status --porcelain` check before `git reset --hard` to warn about modified/untracked files that would be silently discarded (`.env` excluded, already backed up)
+- `scripts/setup_rpi.sh` — add `check_reboot_sudoers()` that inspects `sudo -l -n` for a NOPASSWD reboot rule and prints the exact `visudo` line to add if it is missing
 
 ### Added
 - `pyproject.toml` — added `pytest-cov`, `mypy`, `bandit[toml]`, and `pip-audit` to `[dependency-groups] dev` so security and coverage tools run locally, not just in CI
 - `pyproject.toml` — `[tool.pytest.ini_options]` with `--cov`, `--cov-report=term-missing`, and `--cov-fail-under=85` to enforce coverage threshold on every test run
-- `pyproject.toml` — `[tool.mypy]` section (`strict=false`, `ignore_missing_imports=true`) and `[tool.bandit]` section with medium-severity threshold
-- `pyproject.toml` — `[tool.ruff]` section pinning `line-length=100` and `select=["E","F","W","I","UP"]` for reproducible lint behaviour across ruff upgrades
-- `.github/workflows/pr-validation.yml` — `mypy` type-check step; updated `bandit` to use `pyproject.toml` config via `-c pyproject.toml`; added `pytest-cov` and `mypy` to CI install
+- `pyproject.toml` — `[tool.mypy]`, `[tool.bandit]`, and `[tool.ruff]` sections to pin tool behaviour across version upgrades
+- `.github/workflows/pr-validation.yml` — `mypy` type-check step; `bandit` now reads config via `-c pyproject.toml`; added `pytest-cov` and `mypy` to CI install
+- `utils/concurrency.py` — `run_blocking(fn, *args)` helper wrapping `loop.run_in_executor(None, fn, *args)` to eliminate repeated boilerplate in service modules
+- `cogs/_views.py` — `RebootConfirmView` extracted from `cogs/system.py`; dedicated module for reusable Discord UI components
+
+### Refactored
+- `services/system.py` — all four async wrappers now use `run_blocking()` from `utils/concurrency`; removed unused `asyncio` import
+- `services/nas/client.py` — `NASClient` now inherits `BaseService` with `NotImplementedError` stubs for all abstract methods
+- `services/email/client.py` — `EmailClient` now inherits `BaseService` with `NotImplementedError` stubs for all abstract methods
+- `services/actions/handler.py`, `services/actions/registry.py` — stub functions with Google-style docstrings and `NotImplementedError`
 
 ---
 
