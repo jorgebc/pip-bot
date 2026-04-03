@@ -6,6 +6,15 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.1] — 2026-04-03
+
+### Fixed
+- `scripts/deploy.sh` — replaced removed `--no-dev` flag with `--only main` for Poetry ≥ 2.x compatibility
+- `scripts/deploy.sh` — added `rm -f poetry.lock` before install to force regeneration from `pyproject.toml`, preventing stale lock file conflicts
+- `scripts/deploy.sh` — added explicit `poetry lock` step before `poetry install --only main` to ensure the lock file is always valid on the target environment
+
+---
+
 ## [1.3.0] — 2026-04-02
 
 ### Added
