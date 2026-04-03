@@ -54,6 +54,8 @@ def get_logger(name: str) -> logging.Logger:
     # File handler with rotation (logs/pip-bot.log)
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
+    # Restrict to owner-only so other system users cannot read bot logs.
+    os.chmod(log_dir, 0o700)
 
     file_handler = RotatingFileHandler(
         filename=log_dir / "pip-bot.log",
