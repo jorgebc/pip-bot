@@ -251,15 +251,39 @@ install_systemd_service() {
 # Enable service
 enable_service() {
     log_section "Enabling Systemd Service"
-    
+
     log_info "Enabling pip-bot to start on boot..."
-    
+
     if ! sudo systemctl enable pip-bot 2> /dev/null; then
         log_error "Failed to enable service"
         exit 1
     fi
-    
+
     log_info "Service enabled (will start automatically on reboot)"
+}
+
+# Validate that the bot can run 'sudo reboot' without a password prompt.
+# The /reboot command requires a passwordless sudoers entry for the pi user.
+check_reboot_sudoers() {
+    log_section "Checking Sudoers Entry for Reboot"
+
+    # sudo -l -n lists allowed commands without prompting for a password.
+    # We grep for a NOPASSWD rule that covers the reboot binary.
+    if sudo -l -n 2>/dev/null | grep -q "NOPASSWD.*reboot"; then
+        log_info "Sudoers entry for reboot is configured correctly"
+        return 0
+    fi
+
+    log_warn "No passwordless sudo rule found for 'reboot'."
+    echo ""
+    echo "  The /reboot Discord command runs 'sudo reboot' as the service user."
+    echo "  Without a sudoers entry the command will fail at runtime."
+    echo ""
+    echo "  To fix, run:  sudo visudo -f /etc/sudoers.d/pip-bot"
+    echo "  And add the following line:"
+    echo "    ${PROJECT_USER} ALL=(ALL) NOPASSWD: /sbin/reboot"
+    echo ""
+    log_warn "Setup will continue, but /reboot will not work until sudoers is updated."
 }
 
 # Final summary
@@ -320,6 +344,7 @@ main() {
     create_env
     install_systemd_service
     enable_service
+    check_reboot_sudoers
     print_summary
 }
 
