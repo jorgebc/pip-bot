@@ -302,6 +302,90 @@ class TestSystemCogHelp:
         assert "..." in field_value  # Should have ellipsis from truncation
 
 
+class TestSystemCogLogs:
+    """Test the /logs command via the callback method."""
+
+    # Patch the dict that the callback actually resolves globals from.
+    # discord.py's load_extension can replace sys.modules["cogs.system"] with a fresh
+    # module object, so patch("cogs.system…") may target a different namespace than the
+    # one the callback uses.  Patching the callback's own __globals__ dict is robust
+    # regardless of extension-loading order.
+    _LOGS_GLOBALS = SystemCog.logs.callback.__globals__
+
+    @pytest.mark.asyncio
+    async def test_logs_short_output(self):
+        """Test /logs sends output unchanged when it fits in one Discord message."""
+        bot = MagicMock(spec=discord.ext.commands.Bot)
+        interaction = AsyncMock(spec=discord.Interaction)
+        interaction.response.defer = AsyncMock()
+        interaction.followup.send = AsyncMock()
+
+        short_output = "Apr 04 10:00:00 pip-bot[1]: started\n"
+        cog = SystemCog(bot)
+        mock_fn = AsyncMock(return_value=short_output)
+        with patch.dict(self._LOGS_GLOBALS, {"get_journal_logs_async": mock_fn}):
+            await cog.logs.callback(cog, interaction, lines=5)
+
+        interaction.followup.send.assert_called_once()
+        sent_msg = interaction.followup.send.call_args[0][0]
+        assert short_output.strip() in sent_msg
+        assert "truncated" not in sent_msg
+        assert len(sent_msg) <= 2000
+
+    @pytest.mark.asyncio
+    async def test_logs_long_output_truncated_within_limit(self):
+        """Test /logs truncates long output and the final message is ≤2000 chars."""
+        bot = MagicMock(spec=discord.ext.commands.Bot)
+        interaction = AsyncMock(spec=discord.Interaction)
+        interaction.response.defer = AsyncMock()
+        interaction.followup.send = AsyncMock()
+
+        long_output = "X" * 3000
+        cog = SystemCog(bot)
+        mock_fn = AsyncMock(return_value=long_output)
+        with patch.dict(self._LOGS_GLOBALS, {"get_journal_logs_async": mock_fn}):
+            await cog.logs.callback(cog, interaction, lines=20)
+
+        interaction.followup.send.assert_called_once()
+        sent_msg = interaction.followup.send.call_args[0][0]
+        assert len(sent_msg) <= 2000
+        assert "truncated" in sent_msg
+
+    @pytest.mark.asyncio
+    async def test_logs_empty_output(self):
+        """Test /logs handles empty journal output."""
+        bot = MagicMock(spec=discord.ext.commands.Bot)
+        interaction = AsyncMock(spec=discord.Interaction)
+        interaction.response.defer = AsyncMock()
+        interaction.followup.send = AsyncMock()
+
+        cog = SystemCog(bot)
+        mock_fn = AsyncMock(return_value="")
+        with patch.dict(self._LOGS_GLOBALS, {"get_journal_logs_async": mock_fn}):
+            await cog.logs.callback(cog, interaction, lines=5)
+
+        interaction.followup.send.assert_called_once()
+        sent_msg = interaction.followup.send.call_args[0][0]
+        assert "No log output" in sent_msg
+
+    @pytest.mark.asyncio
+    async def test_logs_journalctl_not_found(self):
+        """Test /logs handles missing journalctl gracefully."""
+        bot = MagicMock(spec=discord.ext.commands.Bot)
+        interaction = AsyncMock(spec=discord.Interaction)
+        interaction.response.defer = AsyncMock()
+        interaction.followup.send = AsyncMock()
+
+        cog = SystemCog(bot)
+        mock_fn = AsyncMock(side_effect=FileNotFoundError)
+        with patch.dict(self._LOGS_GLOBALS, {"get_journal_logs_async": mock_fn}):
+            await cog.logs.callback(cog, interaction, lines=5)
+
+        interaction.followup.send.assert_called_once()
+        sent_msg = interaction.followup.send.call_args[0][0]
+        assert "journalctl" in sent_msg
+
+
 class TestSystemCogInitialization:
     """Test SystemCog initialization."""
 

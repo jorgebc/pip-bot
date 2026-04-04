@@ -315,16 +315,21 @@ class SystemCog(commands.Cog):
                     return
 
                 # Discord message limit is 2000 characters.
-                # Reserve space for the code-block delimiters (```\n...\n``` = 8 chars).
-                max_content = 2000 - 8
+                # Account for code-block delimiters (8 chars) AND the truncation
+                # prefix (37 chars) so the final message never exceeds 2000.
+                _TRUNCATION_PREFIX = "*(output truncated — showing tail)*\n"
+                _CODE_BLOCK_OVERHEAD = 8  # len("```\n") + len("\n```")
+                _MAX_MSG = 2000
+
                 truncated = False
-                if len(output) > max_content:
+                if len(output) > _MAX_MSG - _CODE_BLOCK_OVERHEAD:
+                    max_content = _MAX_MSG - _CODE_BLOCK_OVERHEAD - len(_TRUNCATION_PREFIX)
                     output = output[-max_content:]
                     truncated = True
 
                 message = f"```\n{output}\n```"
                 if truncated:
-                    message = "*(output truncated — showing tail)*\n" + message
+                    message = _TRUNCATION_PREFIX + message
 
                 await interaction.followup.send(message, ephemeral=True)
                 logger.debug(f"Responded to /logs command ({lines} lines)")
