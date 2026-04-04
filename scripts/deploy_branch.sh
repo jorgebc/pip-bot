@@ -157,15 +157,7 @@ install_dependencies() {
         POETRY_CMD="poetry"
     fi
 
-    # Regenerate lock file from pyproject.toml to avoid stale lock conflicts
-    rm -f "$PROJECT_DIR/poetry.lock"
-
-    if ! output=$($POETRY_CMD lock 2>&1); then
-        log_error "Poetry lock failed: $output"
-        exit 1
-    fi
-
-    if ! output=$($POETRY_CMD install --only main 2>&1); then
+    if ! output=$($POETRY_CMD install --only main --no-interaction 2>&1); then
         log_error "Poetry install failed: $output"
         exit 1
     fi
