@@ -6,6 +6,11 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.6.2] — 2026-04-04
+
+### Fixed
+- `scripts/deploy.sh` — `grep -v` returns exit code 1 on a clean working tree; with `set -e` this caused the script to silently abort after backing up `.env`. Added `|| true` so a zero-match result is not treated as an error.
+
 ## [1.6.1] — 2026-04-04
 
 ### Fixed
