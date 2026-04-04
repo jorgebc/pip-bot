@@ -18,7 +18,18 @@ repos:
         args: [bot/, cogs/, services/, config/, utils/]
         pass_filenames: false
 
-  # pytest: full test suite (push stage — slow, only on git push)
+  # bandit: security scan (commit stage — fast)
+  - repo: local
+    hooks:
+      - id: bandit
+        name: bandit
+        entry: bandit
+        language: system
+        types: [python]
+        args: [-c, pyproject.toml, -r, bot/, cogs/, services/, config/, utils/, -q]
+        pass_filenames: false
+
+  # pytest: full test suite + coverage (push stage — slow, only on git push)
   - repo: local
     hooks:
       - id: pytest

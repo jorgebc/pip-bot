@@ -50,7 +50,6 @@ strict = false
 ignore_missing_imports = true
 
 [tool.bandit]
-skips = []
-severity = "medium"
-confidence = "medium"
-targets = ["bot", "cogs", "services", "config", "utils"]
+# B404/B603/B607: subprocess usage is intentional — commands are fully
+# hardcoded (["sudo", "reboot"], ["journalctl", ...]), no user input reaches them.
+skips = ["B404", "B603", "B607"]

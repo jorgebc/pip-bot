@@ -7,12 +7,32 @@ Context file for Claude Code sessions. Read this before writing any code.
 ## First-time setup
 
 ```bash
-poetry install                  # installs main + dev deps
-poetry run pre-commit install   # register commit hook (ruff + mypy)
-poetry run pre-commit install --hook-type pre-push  # register push hook (pytest)
+poetry install                                         # installs main + dev deps
+poetry run pre-commit install                          # register commit hook
+poetry run pre-commit install --hook-type pre-push     # register push hook
 ```
 
-Run once per clone. After this, every `git commit` checks lint + types and every `git push` runs the full test suite — matching CI exactly.
+Run once per clone. After this the full CI check suite runs locally before any
+code reaches GitHub — **no more CI-only failures**.
+
+## CI check suite
+
+These are the exact checks that run in `pr-validation.yml`, in order.
+Every check must pass before opening a PR.
+
+| # | Check | When (local) | Command |
+|---|-------|-------------|---------|
+| 1 | Lint | every commit | `poetry run ruff check .` |
+| 2 | Type check | every commit | `poetry run mypy bot/ cogs/ services/ config/ utils/` |
+| 3 | Security scan | every commit | `poetry run bandit -c pyproject.toml -r bot/ cogs/ services/ config/ utils/ -q` |
+| 4 | Tests + coverage ≥85% | every push | `poetry run pytest` |
+| 5 | Dependency audit | CI only | `pip-audit` (needs network, runs in CI) |
+
+Run all local checks at once (without committing):
+```bash
+poetry run pre-commit run --all-files          # checks 1–3 on all files
+poetry run pytest                              # check 4
+```
 
 ## Commands
 
@@ -20,20 +40,15 @@ Run once per clone. After this, every `git commit` checks lint + types and every
 # Run bot locally
 poetry run python -m bot
 
-# Tests
+# Tests (with coverage)
 poetry run pytest
-poetry run pytest --cov=. --cov-report=term-missing
 poetry run pytest tests/services/nas/test_client.py  # single file
 
-# Lint / format
+# Individual CI checks
 poetry run ruff check .
 poetry run ruff format .
-
-# Type check (mirrors CI)
 poetry run mypy bot/ cogs/ services/ config/ utils/
-
-# Run all pre-commit checks manually (without committing)
-poetry run pre-commit run --all-files
+poetry run bandit -c pyproject.toml -r bot/ cogs/ services/ config/ utils/ -q
 ```
 
 ## Architecture
