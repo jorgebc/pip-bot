@@ -516,6 +516,9 @@ The full roadmap with phases, milestones, and completion criteria lives in [`ROA
 | `DISCORD_TOKEN` | ✅ Phase 1+ | — | Bot token from Discord Developer Portal |
 | `DISCORD_GUILD_ID` | ✅ Phase 1+ | — | Your server ID (enables fast slash command registration) |
 | `LOG_LEVEL` | ❌ | `INFO` | Logging level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
+| `PIHOLE_HOST` | ❌ | `localhost` | Pi-hole hostname or IP; override if Pi-hole is not on the same host |
+| `PIHOLE_PORT` | ❌ | `80` | Pi-hole HTTP port |
+| `PIHOLE_PASSWORD` | ❌ | — | Web admin password; required for `/pihole enable`, `disable`, `top` |
 | `NAS_HOST` | ⏳ Phase 2 | — | Local IP of NAS (e.g., `192.168.1.100`); all NAS_* vars required together |
 | `NAS_PORT` | ⏳ Phase 2 | — | Transmission RPC port (typically `9091`) |
 | `NAS_USER` | ⏳ Phase 2 | — | Transmission username |
