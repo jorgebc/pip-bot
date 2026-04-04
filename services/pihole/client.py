@@ -85,7 +85,7 @@ def _authenticate(host: str, port: int, password: str) -> str:
 
 def _delete_session(host: str, port: int, sid: str) -> None:
     """
-    Invalidate a Pi-hole session via ``DELETE /api/auth`` (BLOCKING, best-effort).
+    Invalidate a Pi-hole session via ``DELETE /api/auth?sid=<value>`` (BLOCKING, best-effort).
 
     Failures are logged at DEBUG level and silently swallowed — the session will
     expire on its own (default validity: 300 s).
@@ -95,9 +95,8 @@ def _delete_session(host: str, port: int, sid: str) -> None:
         port: Pi-hole HTTP port.
         sid: Session SID to invalidate.
     """
-    url = f"http://{host}:{port}/api/auth"
+    url = f"http://{host}:{port}/api/auth?sid={sid}"
     req = urllib.request.Request(url, method="DELETE")  # nosec B310
-    req.add_header("Cookie", f"sid={sid}")
     try:
         with urllib.request.urlopen(req, timeout=5) as _:  # nosec B310
             pass
@@ -110,10 +109,13 @@ def _api_get(host: str, port: int, path: str, sid: str | None = None) -> dict | 
     """
     Perform an authenticated GET request to the Pi-hole v6 API (BLOCKING).
 
+    The session SID is appended as a ``?sid=<value>`` query parameter, which
+    is more reliable than a Cookie header with ``urllib.request``.
+
     Args:
         host: Pi-hole hostname or IP address.
         port: Pi-hole HTTP port.
-        path: URL path including any query string (e.g. ``/api/dns/blocking``).
+        path: URL path including any existing query string (e.g. ``/api/dns/blocking``).
         sid: Optional session SID for authenticated endpoints.
 
     Returns:
@@ -124,11 +126,12 @@ def _api_get(host: str, port: int, path: str, sid: str | None = None) -> dict | 
         urllib.error.URLError: If the connection fails or times out.
         ValueError: If the response body is not valid JSON.
     """
-    url = f"http://{host}:{port}{path}"
-    logger.debug(f"Pi-hole API GET: {url}")
-    req = urllib.request.Request(url)  # nosec B310
     if sid:
-        req.add_header("Cookie", f"sid={sid}")
+        sep = "&" if "?" in path else "?"
+        path = f"{path}{sep}sid={sid}"
+    url = f"http://{host}:{port}{path}"
+    logger.debug(f"Pi-hole API GET: http://{host}:{port}{path.split('?sid=')[0]}")
+    req = urllib.request.Request(url)  # nosec B310
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
             body = resp.read().decode()
@@ -143,6 +146,8 @@ def _api_get(host: str, port: int, path: str, sid: str | None = None) -> dict | 
 def _api_post(host: str, port: int, path: str, payload: dict, sid: str) -> dict | list:
     """
     Perform an authenticated POST request to the Pi-hole v6 API (BLOCKING).
+
+    The session SID is appended as a ``?sid=<value>`` query parameter.
 
     Args:
         host: Pi-hole hostname or IP address.
@@ -159,12 +164,11 @@ def _api_post(host: str, port: int, path: str, payload: dict, sid: str) -> dict 
         urllib.error.URLError: If the connection fails or times out.
         ValueError: If the response body is not valid JSON.
     """
-    url = f"http://{host}:{port}{path}"
-    logger.debug(f"Pi-hole API POST: {url}")
+    url = f"http://{host}:{port}{path}?sid={sid}"
+    logger.debug(f"Pi-hole API POST: http://{host}:{port}{path}")
     body = json.dumps(payload).encode()
     req = urllib.request.Request(url, data=body, method="POST")  # nosec B310
     req.add_header("Content-Type", "application/json")
-    req.add_header("Cookie", f"sid={sid}")
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
             return json.loads(resp.read().decode())

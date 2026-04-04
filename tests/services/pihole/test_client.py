@@ -86,12 +86,12 @@ class TestDeleteSession:
     """Tests for _delete_session."""
 
     def test_sends_delete_request(self):
-        """Sends a DELETE request with the SID cookie."""
+        """Sends a DELETE request with the SID as a query parameter."""
         with patch("urllib.request.urlopen", return_value=_mock_response({})) as mock_open:
             _delete_session("localhost", 80, "abc123")
         req = mock_open.call_args[0][0]
         assert req.get_method() == "DELETE"
-        assert req.get_header("Cookie") == "sid=abc123"
+        assert "sid=abc123" in req.full_url
 
     def test_swallows_errors(self):
         """Errors during session deletion do not propagate."""
