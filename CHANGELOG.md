@@ -6,6 +6,11 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.6.1] — 2026-04-04
+
+### Fixed
+- `cogs/system.py` — `/logs` command message truncation now accounts for the `*(output truncated — showing tail)*\n` prefix (37 chars) in the 2000-character Discord limit, preventing a `400 Bad Request` error when long output was returned
+
 ## [1.6.0] — 2026-04-03
 
 ### Fixed
