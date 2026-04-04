@@ -202,7 +202,7 @@ pip-bot/
 
 These are the concrete commands the bot must implement in Phase 1. They serve as the development anchor — all architectural decisions are validated against these.
 
-**Status: 6 of 10 commands implemented. RPi extended control (commands 7–9) is next. NAS integration (commands 10–12) is Phase 2.**
+**Status: 9 of 10 commands implemented. Only `/network` remains. NAS integration (commands 11–13) is Phase 2.**
 
 ### `/ping`
 ✅ **Implemented.** Responds with `Pong!` and current latency. Used to verify the bot is alive.
@@ -226,13 +226,13 @@ These are the concrete commands the bot must implement in Phase 1. They serve as
 ⏳ **Pending.** Returns the current network state of the Raspberry Pi: local IP address, public IP address, and number of connected network interfaces. Uses `psutil` for local info and a lightweight external call for public IP.
 
 ### `/pihole status`
-⏳ **Pending.** Returns the current Pi-hole status: enabled/disabled, total DNS queries today, number and percentage of blocked queries. Calls the Pi-hole local API (`http://localhost/admin/api.php`).
+✅ **Implemented.** Returns the current Pi-hole status: enabled/disabled, total DNS queries today, number and percentage of blocked queries, and block list size. Calls the Pi-hole local API (`http://localhost/admin/api.php`).
 
 ### `/pihole enable` / `/pihole disable [seconds]`
-⏳ **Pending.** Enables or disables Pi-hole ad blocking. The disable command accepts an optional duration in seconds after which Pi-hole re-enables automatically (delegates to Pi-hole API). Useful when a legitimate site is wrongly blocked.
+✅ **Implemented.** Enables or disables Pi-hole ad blocking. The disable command accepts an optional duration in seconds after which Pi-hole re-enables automatically (delegates to Pi-hole API). Requires `PIHOLE_PASSWORD` in `.env`.
 
 ### `/pihole top`
-⏳ **Pending.** Returns the top 5 blocked domains and top 5 clients by query count from Pi-hole. Uses the Pi-hole local API.
+✅ **Implemented.** Returns the top 5 queried domains and top 5 blocked domains from Pi-hole. Requires `PIHOLE_PASSWORD` in `.env`.
 
 ### `/nas status`
 ⏳ **Phase 2.** Returns the current state of the NAS: whether it is reachable on the local network, available disk space, and the number of active download tasks.

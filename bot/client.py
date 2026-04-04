@@ -91,6 +91,7 @@ class PipBot(commands.Bot):
         logger.debug("Setting up bot cogs...")
         try:
             await self.load_extension("cogs.system")
+            await self.load_extension("cogs.pihole")
             logger.info("Successfully loaded all cogs")
         except Exception as e:
             logger.error(f"Failed to load cogs: {e}", exc_info=True)

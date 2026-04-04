@@ -6,6 +6,28 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.7.0] — 2026-04-04
+
+### Added
+- `services/pihole/client.py` — Pi-hole local API client using `urllib.request` (no new dependencies):
+  - `PiholeStatus` dataclass: enabled flag, total queries, blocked queries, blocked percentage, domains in block list
+  - `PiholeTopData` dataclass: top queried domains and top blocked domains dicts
+  - `get_pihole_status()` / `get_pihole_status_async()` — unauthenticated summary endpoint
+  - `enable_pihole()` / `enable_pihole_async()` — enable ad blocking (requires password)
+  - `disable_pihole(seconds)` / `disable_pihole_async(seconds)` — disable ad blocking for N seconds or indefinitely
+  - `get_pihole_top(n)` / `get_pihole_top_async(n)` — top N queried and blocked domains (requires password)
+  - `_compute_auth(password)` — derives the Pi-hole v5 API token (double-MD5) from the admin password
+- `cogs/pihole.py` — Pi-hole Discord commands via `commands.GroupCog`:
+  - `/pihole status` — shows enabled/disabled state, today's DNS query counts, and block list size
+  - `/pihole enable` — re-enables ad blocking (requires `PIHOLE_PASSWORD` in `.env`)
+  - `/pihole disable [seconds]` — disables ad blocking indefinitely or for N seconds
+  - `/pihole top` — shows top 5 queried and top 5 blocked domains
+- `config/settings.py` — optional Pi-hole settings: `PIHOLE_HOST` (default `localhost`), `PIHOLE_PORT` (default `80`), `PIHOLE_PASSWORD`
+- `bot/client.py` — loads `cogs.pihole` extension on startup
+- `tests/services/pihole/test_client.py` — 21 unit tests covering all functions, auth computation, error paths, and async wrappers
+
+---
+
 ## [1.6.2] — 2026-04-04
 
 ### Fixed

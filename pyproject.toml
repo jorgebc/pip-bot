@@ -1,6 +1,6 @@
 [project]
 name = "pip-bot"
-version = "1.6.2"
+version = "1.7.0"
 description = "Personal Discord bot"
 authors = [
     {name = "jorgebc", email = "jorge.buffa.casalis@gmail.com"}

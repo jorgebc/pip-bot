@@ -21,6 +21,11 @@ class Settings:
     log_level: str = "INFO"
     startup_channel_id: int | None = None
 
+    # Phase 1+ - Optional (Pi-hole integration)
+    pihole_host: str = "localhost"
+    pihole_port: int = 80
+    pihole_password: str | None = None
+
     # Phase 2+ - Optional (NAS integration)
     nas_host: str | None = None
     nas_port: int | None = None
@@ -87,6 +92,15 @@ def get_settings() -> Settings:
                 f"STARTUP_CHANNEL_ID must be an integer, got: {startup_channel_id_str}"
             )
 
+    # Optional Phase 1+ variables — Pi-hole integration
+    pihole_host = os.getenv("PIHOLE_HOST", "localhost")
+    pihole_port_str = os.getenv("PIHOLE_PORT", "80")
+    try:
+        pihole_port = int(pihole_port_str)
+    except ValueError:
+        raise ConfigError(f"PIHOLE_PORT must be an integer, got: {pihole_port_str}")
+    pihole_password = os.getenv("PIHOLE_PASSWORD") or None
+
     # Optional Phase 2+ variables
     nas_host = os.getenv("NAS_HOST")
     nas_port_str = os.getenv("NAS_PORT")
@@ -115,6 +129,9 @@ def get_settings() -> Settings:
         discord_guild_id=discord_guild_id,
         log_level=log_level,
         startup_channel_id=startup_channel_id,
+        pihole_host=pihole_host,
+        pihole_port=pihole_port,
+        pihole_password=pihole_password,
         nas_host=nas_host,
         nas_port=nas_port,
         nas_user=nas_user,
