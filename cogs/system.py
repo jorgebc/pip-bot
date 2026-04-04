@@ -402,6 +402,14 @@ class SystemCog(commands.Cog):
                     if cog_commands:
                         cogs_with_commands[cog_name] = cog_commands
 
+                # GroupCog subcommands don't appear in get_app_commands() — discover
+                # app_commands.Group entries directly from the bot's command tree.
+                for tree_cmd in self.bot.tree.get_commands():
+                    if isinstance(tree_cmd, app_commands.Group):
+                        section = tree_cmd.name.capitalize()
+                        if section not in cogs_with_commands:
+                            cogs_with_commands[section] = [tree_cmd]
+
                 # Format commands by cog
                 if cogs_with_commands:
                     for cog_name, cog_commands in cogs_with_commands.items():
