@@ -1,0 +1,41 @@
+repos:
+  # Ruff: lint + format (commit stage — fast)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  # mypy: type check (commit stage — fast)
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: mypy
+        language: system
+        types: [python]
+        args: [bot/, cogs/, services/, config/, utils/]
+        pass_filenames: false
+
+  # bandit: security scan (commit stage — fast)
+  - repo: local
+    hooks:
+      - id: bandit
+        name: bandit
+        entry: bandit
+        language: system
+        types: [python]
+        args: [-c, pyproject.toml, -r, bot/, cogs/, services/, config/, utils/, -q]
+        pass_filenames: false
+
+  # pytest: full test suite + coverage (push stage — slow, only on git push)
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: pytest
+        language: system
+        args: [--override-ini=addopts=, -q, --tb=short]
+        pass_filenames: false
+        stages: [pre-push]

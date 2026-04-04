@@ -2,7 +2,7 @@
 
 import pytest
 
-from utils.validators import ConfigError, VALID_LOG_LEVELS, validate_log_level
+from utils.validators import VALID_LOG_LEVELS, ConfigError, validate_log_level
 
 
 class TestValidateLoglevel:

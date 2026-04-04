@@ -89,6 +89,15 @@ pull_code() {
         exit 1
     fi
     
+    # Warn about any other modified or untracked files that will be lost.
+    # We exclude .env because it is already backed up above.
+    dirty=$(git status --porcelain | grep -v "^.. \.env")
+    if [ -n "$dirty" ]; then
+        log_warn "The following files will be discarded by git reset:"
+        echo "$dirty"
+        log_warn "Back them up now if needed (Ctrl-C to abort)."
+    fi
+
     if ! git reset --hard origin/main &> /dev/null; then
         log_error "Failed to reset to origin/main"
         exit 1
@@ -110,27 +119,16 @@ install_dependencies() {
     cd "$PROJECT_DIR"
     
     POETRY_BIN="${HOME}/.local/bin/poetry"
-    
-    # Remove stale lock file so Poetry regenerates it from pyproject.toml
-    rm -f "$PROJECT_DIR/poetry.lock"
 
     # Try the standard location first
     if [ -f "$POETRY_BIN" ]; then
-        if ! output=$($POETRY_BIN lock 2>&1); then
-            log_error "Poetry lock failed with output: $output"
-            exit 1
-        fi
-        if ! output=$($POETRY_BIN install --only main 2>&1); then
+        if ! output=$($POETRY_BIN install --only main --no-interaction 2>&1); then
             log_error "Poetry install failed with output: $output"
             exit 1
         fi
     # Fall back to poetry in PATH
     elif command -v poetry &> /dev/null; then
-        if ! output=$(poetry lock 2>&1); then
-            log_error "Poetry lock failed with output: $output"
-            exit 1
-        fi
-        if ! output=$(poetry install --only main 2>&1); then
+        if ! output=$(poetry install --only main --no-interaction 2>&1); then
             log_error "Poetry install failed with output: $output"
             exit 1
         fi

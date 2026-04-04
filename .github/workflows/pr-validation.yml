@@ -19,10 +19,20 @@ jobs:
       - name: Install dependencies
         run: |
           pip install .
-          pip install "pytest>=9.0.2,<10.0.0" "pytest-asyncio>=1.3.0,<2.0.0" "ruff>=0.15.7,<0.16.0" "bandit>=1.8.0,<2.0.0" "pip-audit>=2.7.0,<3.0.0"
+          pip install \
+            "pytest>=9.0.2,<10.0.0" \
+            "pytest-asyncio>=1.3.0,<2.0.0" \
+            "pytest-cov>=6.0,<7.0" \
+            "ruff>=0.15.7,<0.16.0" \
+            "mypy>=1.0,<2.0" \
+            "bandit[toml]>=1.8,<2.0" \
+            "pip-audit>=2.9,<3.0"
 
       - name: Lint
         run: ruff check .
+
+      - name: Type check
+        run: mypy bot/ cogs/ services/ config/ utils/
 
       - name: Test
         run: pytest
@@ -31,4 +41,4 @@ jobs:
         run: pip-audit
 
       - name: Security scan
-        run: bandit -r bot/ cogs/ services/ config/ utils/ -q -ll
+        run: bandit -c pyproject.toml -r bot/ cogs/ services/ config/ utils/ -q

@@ -24,15 +24,21 @@ class PipBot(commands.Bot):
         intents = discord.Intents.default()
         intents.message_content = True
 
-        super().__init__(
+        super().__init__(  # type: ignore[call-arg]
             command_prefix="!",
             intents=intents,
             sync_commands_in_init=False,
         )
         self._disconnect_at: datetime.datetime | None = None
+        self._startup_done = False
 
     async def on_ready(self) -> None:
         """Log bot startup status, sync commands to guild, and notify startup channel."""
+        if self._startup_done:
+            logger.debug("on_ready fired again (reconnect) — skipping duplicate startup logic")
+            return
+        self._startup_done = True
+
         if not self.user:
             logger.warning("on_ready called but user not set yet")
             return
@@ -52,7 +58,8 @@ class PipBot(commands.Bot):
                 logger.debug(f"  Registered command: /{cmd.name}")
         except discord.Forbidden as e:
             logger.error(
-                f"Missing permissions to sync commands (check bot scope 'applications.commands'): {e}"
+                "Missing permissions to sync commands "
+                f"(check bot scope 'applications.commands'): {e}"
             )
         except discord.HTTPException as e:
             logger.error(f"HTTP error while syncing commands: {e}", exc_info=True)
@@ -69,7 +76,8 @@ class PipBot(commands.Bot):
                     )
                 else:
                     logger.warning(
-                        f"Startup channel {settings.startup_channel_id} not found or not a text channel"
+                        f"Startup channel {settings.startup_channel_id} "
+                        "not found or not a text channel"
                     )
             except discord.Forbidden:
                 logger.error(
@@ -102,7 +110,10 @@ class PipBot(commands.Bot):
         now = datetime.datetime.now(datetime.UTC)
         if self._disconnect_at:
             downtime = now - self._disconnect_at
-            logger.info(f"Bot resumed connection to Discord (disconnected for {downtime.total_seconds():.1f}s)")
+            logger.info(
+                f"Bot resumed connection to Discord "
+                f"(disconnected for {downtime.total_seconds():.1f}s)"
+            )
             self._disconnect_at = None
         else:
             logger.info("Bot resumed connection to Discord")

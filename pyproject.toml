@@ -1,6 +1,6 @@
 [project]
 name = "pip-bot"
-version = "1.5.0"
+version = "1.6.0"
 description = "Personal Discord bot"
 authors = [
     {name = "jorgebc", email = "jorge.buffa.casalis@gmail.com"}
@@ -25,5 +25,31 @@ packages = [{include = "bot"}, {include = "cogs"}, {include = "config"}, {includ
 dev = [
     "pytest>=9.0.2,<10.0.0",
     "pytest-asyncio>=1.3.0,<2.0.0",
-    "ruff>=0.15.7,<0.16.0"
+    "pytest-cov>=6.0,<7.0",
+    "ruff>=0.15.7,<0.16.0",
+    "mypy>=1.0,<2.0",
+    "bandit[toml]>=1.8,<2.0",
+    "pip-audit>=2.9,<3.0",
+    "pre-commit>=4.0,<5.0",
 ]
+
+[tool.coverage.run]
+omit = ["bot/__main__.py"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=. --cov-report=term-missing --cov-fail-under=85"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+
+[tool.mypy]
+strict = false
+ignore_missing_imports = true
+
+[tool.bandit]
+# B404/B603/B607: subprocess usage is intentional — commands are fully
+# hardcoded (["sudo", "reboot"], ["journalctl", ...]), no user input reaches them.
+skips = ["B404", "B603", "B607"]

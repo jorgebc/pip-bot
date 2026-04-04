@@ -1,12 +1,13 @@
 """System health monitoring service."""
 
-import asyncio
 import subprocess
-import psutil
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import psutil
+
+from utils.concurrency import run_blocking
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -42,8 +43,10 @@ def get_system_status() -> SystemStatus:
         uptime_delta = datetime.now() - boot_time
         uptime_str = _format_timedelta(uptime_delta)
 
-        # Get CPU usage (non-blocking instantaneous value)
-        cpu_percent = psutil.cpu_percent(interval=None)
+        # Get CPU usage with a short blocking interval for an accurate reading.
+        # interval=0.5 is acceptable here because this function runs inside
+        # run_in_executor (a thread pool), never on the event loop directly.
+        cpu_percent = psutil.cpu_percent(interval=0.5)
 
         # Get RAM usage
         ram = psutil.virtual_memory()
@@ -84,10 +87,8 @@ async def get_system_status_async() -> SystemStatus:
     Raises:
         Exception: If system metrics cannot be collected.
     """
-    loop = asyncio.get_event_loop()
     try:
-        status = await loop.run_in_executor(None, get_system_status)
-        return status
+        return await run_blocking(get_system_status)
     except Exception as e:
         logger.error(f"Failed to collect system metrics asynchronously: {e}", exc_info=True)
         raise
@@ -139,8 +140,7 @@ async def get_cpu_temperature_async() -> float:
         OSError: If the file cannot be read.
         ValueError: If the file contents cannot be parsed as a number.
     """
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, get_cpu_temperature)
+    return await run_blocking(get_cpu_temperature)
 
 
 def reboot_system() -> None:
@@ -182,8 +182,7 @@ async def reboot_system_async() -> None:
         subprocess.CalledProcessError: If the reboot command exits non-zero.
         OSError: If the ``reboot`` binary cannot be found or executed.
     """
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, reboot_system)
+    await run_blocking(reboot_system)
 
 
 _LOGS_MIN_LINES = 1
@@ -247,8 +246,7 @@ async def get_journal_logs_async(lines: int = 20) -> str:
         FileNotFoundError: If journalctl is not found.
         OSError: If the command cannot be executed.
     """
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, get_journal_logs, lines)
+    return await run_blocking(get_journal_logs, lines)
 
 
 def _format_timedelta(delta: timedelta) -> str:

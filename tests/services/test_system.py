@@ -109,7 +109,7 @@ class TestGetSystemStatus:
         assert status.disk_total_gb == 1000.0
 
         # Verify method calls
-        mock_cpu_percent.assert_called_once_with(interval=None)
+        mock_cpu_percent.assert_called_once_with(interval=0.5)
         mock_virtual_memory.assert_called_once()
         mock_disk_usage.assert_called_once_with("/")
 
@@ -259,9 +259,10 @@ class TestGetJournalLogs:
     @patch("services.system.subprocess.run")
     def test_returns_stdout(self, mock_run):
         """Test that stdout from journalctl is returned."""
-        mock_run.return_value = MagicMock(returncode=0, stdout="Apr 03 12:00:00 pip-bot[1]: started\n")
+        log_line = "Apr 03 12:00:00 pip-bot[1]: started\n"
+        mock_run.return_value = MagicMock(returncode=0, stdout=log_line)
         result = get_journal_logs(lines=5)
-        assert result == "Apr 03 12:00:00 pip-bot[1]: started\n"
+        assert result == log_line
 
     @patch("services.system.subprocess.run")
     def test_calls_journalctl_with_correct_args(self, mock_run):

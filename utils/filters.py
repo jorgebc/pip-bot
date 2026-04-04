@@ -7,8 +7,13 @@ import re
 class TokenSanitizationFilter(logging.Filter):
     """Filter that sanitizes Discord tokens and other sensitive data from log records."""
 
-    # Pattern to match Discord tokens (typical format)
-    TOKEN_PATTERN = re.compile(r"([A-Za-z0-9._-]{24,})(\.[A-Za-z0-9._-]{6,})?(\.[A-Za-z0-9_-]{27,})?")
+    # Match the three-segment Discord token format:
+    #   <base64_user_id> . <base64_timestamp(6)> . <base64_hmac(27+)>
+    # This is more precise than a generic 24+ char string, which would also
+    # match UUIDs, file paths, and long base64 blobs — causing false positives.
+    TOKEN_PATTERN = re.compile(
+        r"[A-Za-z0-9_-]{23,28}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}"
+    )
 
     # Common sensitive environment variable names
     SENSITIVE_KEYS = {
@@ -36,7 +41,7 @@ class TokenSanitizationFilter(logging.Filter):
     def _sanitize_message(self, message: str) -> str:
         """Replace tokens and sensitive values in message."""
         # Replace Discord-like tokens
-        message = self.TOKEN_PATTERN.sub(r"\1.****", message)
+        message = self.TOKEN_PATTERN.sub("[TOKEN]", message)
 
         # Replace values in key=value patterns for sensitive keys
         for key in self.SENSITIVE_KEYS:
