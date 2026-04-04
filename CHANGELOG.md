@@ -6,46 +6,28 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
-
-### Fixed
-- `services/pihole/client.py` — rewrote for Pi-hole v6 REST API (`/api/`); the legacy
-  `api.php` endpoint no longer exists in v6. New flow: `POST /api/auth` to obtain a
-  session SID, use SID cookie on subsequent calls, `DELETE /api/auth` to clean up.
-  Removed `_compute_auth` (double-MD5 no longer needed); added `_authenticate`,
-  `_delete_session`, `_api_post`, and `_iter_top_entries` helpers.
-- `services/pihole/client.py` — `get_pihole_status` now accepts an optional `password`
-  parameter; with it, full stats are fetched from `GET /api/stats/summary`; without it,
-  only the blocking state from `GET /api/dns/blocking` is returned (stats default to 0).
-- `cogs/pihole.py` — `/pihole status` now passes `settings.pihole_password` so full
-  stats appear when the password is configured.
-- `cogs/pihole.py` — all commands now catch `urllib.error.HTTPError` before
-  `urllib.error.URLError` (HTTPError is a subclass); a 401 response now shows
-  "Authentication failed — check PIHOLE_PASSWORD" instead of "unreachable".
-- `tests/services/pihole/test_client.py` — rewrote all tests for the v6 API; 30 tests
-  covering auth, session lifecycle, all service functions, helpers, and async wrappers.
-
----
-
 ## [1.7.0] — 2026-04-04
 
 ### Added
-- `services/pihole/client.py` — Pi-hole local API client using `urllib.request` (no new dependencies):
+- `services/pihole/client.py` — Pi-hole v6 REST API client using `urllib.request` (no new dependencies):
   - `PiholeStatus` dataclass: enabled flag, total queries, blocked queries, blocked percentage, domains in block list
   - `PiholeTopData` dataclass: top queried domains and top blocked domains dicts
-  - `get_pihole_status()` / `get_pihole_status_async()` — unauthenticated summary endpoint
-  - `enable_pihole()` / `enable_pihole_async()` — enable ad blocking (requires password)
-  - `disable_pihole(seconds)` / `disable_pihole_async(seconds)` — disable ad blocking for N seconds or indefinitely
-  - `get_pihole_top(n)` / `get_pihole_top_async(n)` — top N queried and blocked domains (requires password)
-  - `_compute_auth(password)` — derives the Pi-hole v5 API token (double-MD5) from the admin password
-- `cogs/pihole.py` — Pi-hole Discord commands via `commands.GroupCog`:
-  - `/pihole status` — shows enabled/disabled state, today's DNS query counts, and block list size
-  - `/pihole enable` — re-enables ad blocking (requires `PIHOLE_PASSWORD` in `.env`)
-  - `/pihole disable [seconds]` — disables ad blocking indefinitely or for N seconds
-  - `/pihole top` — shows top 5 queried and top 5 blocked domains
-- `config/settings.py` — optional Pi-hole settings: `PIHOLE_HOST` (default `localhost`), `PIHOLE_PORT` (default `80`), `PIHOLE_PASSWORD`
-- `bot/client.py` — loads `cogs.pihole` extension on startup
-- `tests/services/pihole/test_client.py` — 21 unit tests covering all functions, auth computation, error paths, and async wrappers
+  - `_authenticate` / `_delete_session` — session-based auth via `POST /api/auth` and `DELETE /api/auth`; SID passed as a query parameter (`?sid=`) on all subsequent requests
+  - `get_pihole_status(password=None)` / `get_pihole_status_async` — blocking state from `GET /api/dns/blocking`; full query stats from `GET /api/stats/summary` when password is supplied
+  - `enable_pihole` / `enable_pihole_async` — `POST /api/dns/blocking` with `{"blocking": true}` (requires password)
+  - `disable_pihole(seconds)` / `disable_pihole_async` — `POST /api/dns/blocking` with `{"blocking": false, "timer": N|null}` (requires password)
+  - `get_pihole_top(n)` / `get_pihole_top_async` — top allowed domains via `GET /api/stats/top_domains?blocked=false` and top blocked via `?blocked=true` (requires password)
+- `cogs/pihole.py` — Pi-hole Discord command group (`commands.GroupCog`):
+  - `/pihole status` — enabled/disabled state, today's DNS query counts, block list size; no password required for basic state
+  - `/pihole enable` — re-enables ad blocking (requires `PIHOLE_PASSWORD`)
+  - `/pihole disable [seconds]` — disables ad blocking indefinitely or for N seconds (requires `PIHOLE_PASSWORD`)
+  - `/pihole top` — top 5 queried and top 5 blocked domains (requires `PIHOLE_PASSWORD`)
+  - All commands catch `urllib.error.HTTPError` before `URLError`; HTTP 401 shows a clear "check PIHOLE_PASSWORD" message
+- `config/settings.py` — optional `PIHOLE_HOST` (default `localhost`), `PIHOLE_PORT` (default `80`), `PIHOLE_PASSWORD` settings
+- `bot/client.py` — loads `cogs.pihole` on startup
+- `cogs/system.py` — `/help` now discovers `app_commands.Group` entries via `bot.tree.get_commands()` so Pi-hole subcommands appear in the listing
+- `.env.example` — Pi-hole section documenting all three variables
+- `tests/services/pihole/test_client.py` — 30 unit tests covering auth, session lifecycle, all service functions, `_iter_top_entries`, and async wrappers
 
 ---
 

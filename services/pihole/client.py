@@ -4,8 +4,8 @@ Pi-hole v6 replaced the legacy ``api.php`` endpoint with a session-based
 REST API rooted at ``/api/``.  Authentication flow:
 
 1. ``POST /api/auth`` with the admin password → receive a session SID.
-2. Send the SID as a ``Cookie: sid=<value>`` header on subsequent requests.
-3. ``DELETE /api/auth`` to invalidate the session when done.
+2. Append ``?sid=<value>`` (or ``&sid=<value>``) to subsequent request URLs.
+3. ``DELETE /api/auth?sid=<value>`` to invalidate the session when done.
 """
 
 import json
