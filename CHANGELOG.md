@@ -6,6 +6,27 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- `services/pihole/client.py` — rewrote for Pi-hole v6 REST API (`/api/`); the legacy
+  `api.php` endpoint no longer exists in v6. New flow: `POST /api/auth` to obtain a
+  session SID, use SID cookie on subsequent calls, `DELETE /api/auth` to clean up.
+  Removed `_compute_auth` (double-MD5 no longer needed); added `_authenticate`,
+  `_delete_session`, `_api_post`, and `_iter_top_entries` helpers.
+- `services/pihole/client.py` — `get_pihole_status` now accepts an optional `password`
+  parameter; with it, full stats are fetched from `GET /api/stats/summary`; without it,
+  only the blocking state from `GET /api/dns/blocking` is returned (stats default to 0).
+- `cogs/pihole.py` — `/pihole status` now passes `settings.pihole_password` so full
+  stats appear when the password is configured.
+- `cogs/pihole.py` — all commands now catch `urllib.error.HTTPError` before
+  `urllib.error.URLError` (HTTPError is a subclass); a 401 response now shows
+  "Authentication failed — check PIHOLE_PASSWORD" instead of "unreachable".
+- `tests/services/pihole/test_client.py` — rewrote all tests for the v6 API; 30 tests
+  covering auth, session lifecycle, all service functions, helpers, and async wrappers.
+
+---
+
 ## [1.7.0] — 2026-04-04
 
 ### Added

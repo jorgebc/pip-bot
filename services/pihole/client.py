@@ -1,6 +1,13 @@
-"""Pi-hole local API client for status, enable, disable, and top-domains queries."""
+"""Pi-hole v6 local REST API client.
 
-import hashlib
+Pi-hole v6 replaced the legacy ``api.php`` endpoint with a session-based
+REST API rooted at ``/api/``.  Authentication flow:
+
+1. ``POST /api/auth`` with the admin password → receive a session SID.
+2. Send the SID as a ``Cookie: sid=<value>`` header on subsequent requests.
+3. ``DELETE /api/auth`` to invalidate the session when done.
+"""
+
 import json
 import urllib.error
 import urllib.request
@@ -35,134 +42,256 @@ class PiholeTopData:
     top_ads: dict[str, int] = field(default_factory=dict)  # domain → block count
 
 
-def _compute_auth(password: str) -> str:
-    """
-    Compute the Pi-hole API auth token from the admin password.
+# ---------------------------------------------------------------------------
+# Internal HTTP helpers
+# ---------------------------------------------------------------------------
 
-    Pi-hole v5 uses the double-MD5 of the web admin password as the API token.
+
+def _authenticate(host: str, port: int, password: str) -> str:
+    """
+    Authenticate against the Pi-hole v6 API and return a session SID (BLOCKING).
+
+    Posts the admin password to ``POST /api/auth`` and extracts the session
+    identifier from the response.
 
     Args:
-        password: Raw web admin password set in the Pi-hole UI.
+        host: Pi-hole hostname or IP address.
+        port: Pi-hole HTTP port.
+        password: Web admin password.
 
     Returns:
-        Double-MD5 hex digest to pass as the ``auth`` query parameter.
-    """
-    first = hashlib.md5(password.encode()).hexdigest()  # nosec B324
-    return hashlib.md5(first.encode()).hexdigest()  # nosec B324
-
-
-def _api_get(host: str, port: int, params: str) -> dict | list:
-    """
-    Perform a GET request to the Pi-hole local API (BLOCKING).
-
-    Args:
-        host: Pi-hole hostname or IP (e.g. ``"localhost"``).
-        port: Pi-hole HTTP port (e.g. ``80``).
-        params: URL query string without the leading ``?``.
-
-    Returns:
-        Parsed JSON response — a dict for most endpoints, a list if Pi-hole
-        returns an empty response (high privacy level).
+        Session SID string to pass as ``Cookie: sid=<value>`` in later calls.
 
     Raises:
+        urllib.error.HTTPError: If authentication is rejected (e.g. HTTP 401).
+        urllib.error.URLError: If the Pi-hole API is unreachable.
+        ValueError: If the response is missing the expected SID field.
+    """
+    url = f"http://{host}:{port}/api/auth"
+    body = json.dumps({"password": password}).encode()
+    req = urllib.request.Request(url, data=body, method="POST")  # nosec B310
+    req.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+            data = json.loads(resp.read().decode())
+    except urllib.error.URLError:
+        raise
+    sid = data.get("session", {}).get("sid")
+    if not sid:
+        raise ValueError(f"Pi-hole auth response missing SID: {data}")
+    logger.debug("Pi-hole session authenticated")
+    return sid
+
+
+def _delete_session(host: str, port: int, sid: str) -> None:
+    """
+    Invalidate a Pi-hole session via ``DELETE /api/auth`` (BLOCKING, best-effort).
+
+    Failures are logged at DEBUG level and silently swallowed — the session will
+    expire on its own (default validity: 300 s).
+
+    Args:
+        host: Pi-hole hostname or IP address.
+        port: Pi-hole HTTP port.
+        sid: Session SID to invalidate.
+    """
+    url = f"http://{host}:{port}/api/auth"
+    req = urllib.request.Request(url, method="DELETE")  # nosec B310
+    req.add_header("Cookie", f"sid={sid}")
+    try:
+        with urllib.request.urlopen(req, timeout=5) as _:  # nosec B310
+            pass
+        logger.debug("Pi-hole session deleted")
+    except Exception as e:
+        logger.debug(f"Failed to delete Pi-hole session (non-critical): {e}")
+
+
+def _api_get(host: str, port: int, path: str, sid: str | None = None) -> dict | list:
+    """
+    Perform an authenticated GET request to the Pi-hole v6 API (BLOCKING).
+
+    Args:
+        host: Pi-hole hostname or IP address.
+        port: Pi-hole HTTP port.
+        path: URL path including any query string (e.g. ``/api/dns/blocking``).
+        sid: Optional session SID for authenticated endpoints.
+
+    Returns:
+        Parsed JSON response (dict or list depending on the endpoint).
+
+    Raises:
+        urllib.error.HTTPError: On 4xx/5xx responses.
         urllib.error.URLError: If the connection fails or times out.
         ValueError: If the response body is not valid JSON.
     """
-    url = f"http://{host}:{port}/admin/api.php?{params}"
-    # Omit auth token from log output to avoid leaking it
-    log_url = url.split("&auth")[0].split("?auth")[0]
-    logger.debug(f"Pi-hole API GET: {log_url}")
+    url = f"http://{host}:{port}{path}"
+    logger.debug(f"Pi-hole API GET: {url}")
+    req = urllib.request.Request(url)  # nosec B310
+    if sid:
+        req.add_header("Cookie", f"sid={sid}")
     try:
-        with urllib.request.urlopen(url, timeout=10) as response:  # nosec B310
-            body = response.read().decode("utf-8")
-    except urllib.error.URLError as e:
-        logger.error(f"Pi-hole API unreachable at {host}:{port} — {e}")
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+            body = resp.read().decode()
+    except urllib.error.URLError:
         raise
     try:
         return json.loads(body)
     except json.JSONDecodeError as e:
-        logger.error(f"Pi-hole API returned invalid JSON: {e}")
         raise ValueError(f"Pi-hole API returned invalid JSON: {e}") from e
 
 
-def get_pihole_status(host: str = _DEFAULT_HOST, port: int = _DEFAULT_PORT) -> PiholeStatus:
+def _api_post(host: str, port: int, path: str, payload: dict, sid: str) -> dict | list:
     """
-    Retrieve Pi-hole status and today's query summary (BLOCKING).
-
-    Uses the unauthenticated ``?summary`` endpoint — no password required.
+    Perform an authenticated POST request to the Pi-hole v6 API (BLOCKING).
 
     Args:
         host: Pi-hole hostname or IP address.
         port: Pi-hole HTTP port.
+        path: URL path (e.g. ``/api/dns/blocking``).
+        payload: Dict to serialize as the JSON request body.
+        sid: Session SID (required for write operations).
 
     Returns:
-        PiholeStatus dataclass with enabled state and DNS query counts.
+        Parsed JSON response.
 
     Raises:
-        urllib.error.URLError: If the Pi-hole API is unreachable.
-        ValueError: If the API response is malformed or not JSON.
+        urllib.error.HTTPError: On 4xx/5xx responses.
+        urllib.error.URLError: If the connection fails or times out.
+        ValueError: If the response body is not valid JSON.
     """
-    data = _api_get(host, port, "summary")
-    if not isinstance(data, dict):
-        raise ValueError(f"Unexpected Pi-hole summary response type: {type(data)}")
+    url = f"http://{host}:{port}{path}"
+    logger.debug(f"Pi-hole API POST: {url}")
+    body = json.dumps(payload).encode()
+    req = urllib.request.Request(url, data=body, method="POST")  # nosec B310
+    req.add_header("Content-Type", "application/json")
+    req.add_header("Cookie", f"sid={sid}")
     try:
-        enabled = data.get("status", "disabled") == "enabled"
-        total_queries = int(data.get("dns_queries_today", 0))
-        blocked_queries = int(data.get("ads_blocked_today", 0))
-        blocked_percent = float(data.get("ads_percentage_today", 0.0))
-        domains_blocked = int(data.get("domains_being_blocked", 0))
-    except (TypeError, ValueError) as e:
-        logger.error(f"Failed to parse Pi-hole summary response: {e}")
-        raise ValueError(f"Malformed Pi-hole summary response: {e}") from e
-    return PiholeStatus(
-        enabled=enabled,
-        total_queries=total_queries,
-        blocked_queries=blocked_queries,
-        blocked_percent=blocked_percent,
-        domains_blocked=domains_blocked,
-    )
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+            return json.loads(resp.read().decode())
+    except urllib.error.URLError:
+        raise
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Pi-hole API returned invalid JSON: {e}") from e
 
 
-async def get_pihole_status_async(
-    host: str = _DEFAULT_HOST, port: int = _DEFAULT_PORT
+# ---------------------------------------------------------------------------
+# Public service functions
+# ---------------------------------------------------------------------------
+
+
+def get_pihole_status(
+    host: str = _DEFAULT_HOST,
+    port: int = _DEFAULT_PORT,
+    password: str | None = None,
 ) -> PiholeStatus:
     """
-    Retrieve Pi-hole status asynchronously.
+    Retrieve Pi-hole blocking state and today's query summary (BLOCKING).
 
-    Wraps the blocking HTTP call in a thread-pool executor.
+    Fetches ``GET /api/dns/blocking`` for the enabled/disabled state and
+    ``GET /api/stats/summary`` for query counts (requires authentication).
+    If no password is provided the blocking state is still returned but
+    query counts default to zero.
 
     Args:
         host: Pi-hole hostname or IP address.
         port: Pi-hole HTTP port.
+        password: Web admin password. Optional — omit for blocking state only.
 
     Returns:
         PiholeStatus dataclass.
 
     Raises:
+        urllib.error.HTTPError: On authentication failure or API error.
         urllib.error.URLError: If the Pi-hole API is unreachable.
         ValueError: If the API response is malformed.
     """
-    return await run_blocking(get_pihole_status, host, port)
+    sid = None
+    try:
+        if password:
+            sid = _authenticate(host, port, password)
+
+        blocking_data = _api_get(host, port, "/api/dns/blocking", sid)
+        if not isinstance(blocking_data, dict):
+            raise ValueError(f"Unexpected /api/dns/blocking response: {blocking_data}")
+        enabled = blocking_data.get("blocking") == "enabled"
+
+        total_queries = 0
+        blocked_queries = 0
+        blocked_percent = 0.0
+        domains_blocked = 0
+
+        if sid:
+            summary = _api_get(host, port, "/api/stats/summary", sid)
+            if not isinstance(summary, dict):
+                raise ValueError(f"Unexpected /api/stats/summary response: {summary}")
+            queries = summary.get("queries", {})
+            gravity = summary.get("gravity", {})
+            try:
+                total_queries = int(queries.get("total", 0))
+                blocked_queries = int(queries.get("blocked", 0))
+                blocked_percent = float(queries.get("percent_blocked", 0.0))
+                domains_blocked = int(gravity.get("domains_being_blocked", 0))
+            except (TypeError, ValueError) as e:
+                raise ValueError(f"Malformed Pi-hole summary response: {e}") from e
+
+        return PiholeStatus(
+            enabled=enabled,
+            total_queries=total_queries,
+            blocked_queries=blocked_queries,
+            blocked_percent=blocked_percent,
+            domains_blocked=domains_blocked,
+        )
+    finally:
+        if sid:
+            _delete_session(host, port, sid)
 
 
-def enable_pihole(host: str, port: int, password: str) -> None:
+async def get_pihole_status_async(
+    host: str = _DEFAULT_HOST,
+    port: int = _DEFAULT_PORT,
+    password: str | None = None,
+) -> PiholeStatus:
     """
-    Enable Pi-hole ad blocking (BLOCKING).
+    Retrieve Pi-hole status asynchronously.
 
     Args:
         host: Pi-hole hostname or IP address.
         port: Pi-hole HTTP port.
-        password: Web admin password (used to derive the API auth token).
+        password: Web admin password. Optional — omit for blocking state only.
+
+    Returns:
+        PiholeStatus dataclass.
 
     Raises:
+        urllib.error.HTTPError: On authentication failure or API error.
+        urllib.error.URLError: If the Pi-hole API is unreachable.
+        ValueError: If the API response is malformed.
+    """
+    return await run_blocking(get_pihole_status, host, port, password)
+
+
+def enable_pihole(host: str, port: int, password: str) -> None:
+    """
+    Enable Pi-hole ad blocking via ``POST /api/dns/blocking`` (BLOCKING).
+
+    Args:
+        host: Pi-hole hostname or IP address.
+        port: Pi-hole HTTP port.
+        password: Web admin password.
+
+    Raises:
+        urllib.error.HTTPError: On authentication failure or API error.
         urllib.error.URLError: If the Pi-hole API is unreachable.
         ValueError: If the API response does not confirm the enabled state.
     """
-    auth = _compute_auth(password)
-    data = _api_get(host, port, f"enable&auth={auth}")
-    if not isinstance(data, dict) or data.get("status") != "enabled":
-        raise ValueError(f"Pi-hole enable did not return expected status: {data}")
-    logger.info("Pi-hole ad blocking enabled")
+    sid = _authenticate(host, port, password)
+    try:
+        data = _api_post(host, port, "/api/dns/blocking", {"blocking": True}, sid)
+        if not isinstance(data, dict) or data.get("blocking") != "enabled":
+            raise ValueError(f"Unexpected enable response: {data}")
+        logger.info("Pi-hole ad blocking enabled")
+    finally:
+        _delete_session(host, port, sid)
 
 
 async def enable_pihole_async(host: str, port: int, password: str) -> None:
@@ -175,6 +304,7 @@ async def enable_pihole_async(host: str, port: int, password: str) -> None:
         password: Web admin password.
 
     Raises:
+        urllib.error.HTTPError: On authentication failure or API error.
         urllib.error.URLError: If the Pi-hole API is unreachable.
         ValueError: If the API response does not confirm the enabled state.
     """
@@ -183,24 +313,32 @@ async def enable_pihole_async(host: str, port: int, password: str) -> None:
 
 def disable_pihole(host: str, port: int, password: str, seconds: int = 0) -> None:
     """
-    Disable Pi-hole ad blocking (BLOCKING).
+    Disable Pi-hole ad blocking via ``POST /api/dns/blocking`` (BLOCKING).
 
     Args:
         host: Pi-hole hostname or IP address.
         port: Pi-hole HTTP port.
         password: Web admin password.
-        seconds: Duration to disable in seconds; ``0`` means indefinitely.
+        seconds: Duration in seconds; ``0`` (default) means indefinitely.
 
     Raises:
+        urllib.error.HTTPError: On authentication failure or API error.
         urllib.error.URLError: If the Pi-hole API is unreachable.
         ValueError: If the API response does not confirm the disabled state.
     """
-    auth = _compute_auth(password)
-    data = _api_get(host, port, f"disable={seconds}&auth={auth}")
-    if not isinstance(data, dict) or data.get("status") != "disabled":
-        raise ValueError(f"Pi-hole disable did not return expected status: {data}")
-    duration = f"{seconds}s" if seconds > 0 else "indefinitely"
-    logger.info(f"Pi-hole ad blocking disabled ({duration})")
+    sid = _authenticate(host, port, password)
+    try:
+        # Pi-hole v6 uses timer=null for indefinite, timer=N for N seconds
+        timer: int | None = seconds if seconds > 0 else None
+        data = _api_post(
+            host, port, "/api/dns/blocking", {"blocking": False, "timer": timer}, sid
+        )
+        if not isinstance(data, dict) or data.get("blocking") != "disabled":
+            raise ValueError(f"Unexpected disable response: {data}")
+        duration = f"{seconds}s" if seconds > 0 else "indefinitely"
+        logger.info(f"Pi-hole ad blocking disabled ({duration})")
+    finally:
+        _delete_session(host, port, sid)
 
 
 async def disable_pihole_async(
@@ -213,9 +351,10 @@ async def disable_pihole_async(
         host: Pi-hole hostname or IP address.
         port: Pi-hole HTTP port.
         password: Web admin password.
-        seconds: Duration to disable in seconds; ``0`` means indefinitely.
+        seconds: Duration in seconds; ``0`` means indefinitely.
 
     Raises:
+        urllib.error.HTTPError: On authentication failure or API error.
         urllib.error.URLError: If the Pi-hole API is unreachable.
         ValueError: If the API response does not confirm the disabled state.
     """
@@ -228,35 +367,68 @@ def get_pihole_top(
     """
     Retrieve the top queried and top blocked domains from Pi-hole (BLOCKING).
 
-    Requires authentication because top-domains data is privacy-sensitive.
+    Calls ``GET /api/stats/top_domains?count=N`` for top allowed queries and
+    ``GET /api/stats/top_blocked?count=N`` for top blocked domains.
 
     Args:
         host: Pi-hole hostname or IP address.
         port: Pi-hole HTTP port.
         password: Web admin password.
-        n: Number of top entries to retrieve per category (default 5).
+        n: Number of top entries per category (default 5).
 
     Returns:
         PiholeTopData with ``top_queries`` and ``top_ads`` dicts (domain → count).
 
     Raises:
+        urllib.error.HTTPError: On authentication failure or API error.
         urllib.error.URLError: If the Pi-hole API is unreachable.
-        ValueError: If the API returns an empty response (privacy level too high)
-            or cannot be parsed.
+        ValueError: If the response cannot be parsed.
     """
-    auth = _compute_auth(password)
-    data = _api_get(host, port, f"topItems={n}&auth={auth}")
+    sid = _authenticate(host, port, password)
+    try:
+        queries_data = _api_get(host, port, f"/api/stats/top_domains?count={n}", sid)
+        blocked_data = _api_get(host, port, f"/api/stats/top_blocked?count={n}", sid)
+
+        top_queries: dict[str, int] = {}
+        for entry in _iter_top_entries(queries_data, ("top_queries", "domains")):
+            domain = entry.get("domain") or entry.get("name", "")
+            if domain:
+                top_queries[domain] = int(entry.get("count", 0))
+
+        top_ads: dict[str, int] = {}
+        for entry in _iter_top_entries(blocked_data, ("top_blocked", "domains")):
+            domain = entry.get("domain") or entry.get("name", "")
+            if domain:
+                top_ads[domain] = int(entry.get("count", 0))
+
+        return PiholeTopData(top_queries=top_queries, top_ads=top_ads)
+    finally:
+        _delete_session(host, port, sid)
+
+
+def _iter_top_entries(data: dict | list, keys: tuple[str, ...]):
+    """
+    Extract a list of domain-count entries from a Pi-hole top-domains response.
+
+    Tries each key in ``keys`` in order, returning the first list found.
+    If ``data`` is itself a list it is returned directly. Falls back to an
+    empty list so callers always get an iterable.
+
+    Args:
+        data: Parsed JSON response from a top-domains endpoint.
+        keys: Candidate dict keys to look for the list under.
+
+    Returns:
+        Iterable of entry dicts (each with ``domain``/``name`` and ``count``).
+    """
     if isinstance(data, list):
-        # Pi-hole returns [] when the privacy level blocks top-domain disclosure
-        raise ValueError(
-            "Pi-hole returned no data — privacy level may be set too high"
-        )
-    if not isinstance(data, dict):
-        raise ValueError(f"Unexpected Pi-hole top-items response type: {type(data)}")
-    return PiholeTopData(
-        top_queries=dict(data.get("top_queries", {})),
-        top_ads=dict(data.get("top_ads", {})),
-    )
+        return data
+    if isinstance(data, dict):
+        for key in keys:
+            value = data.get(key)
+            if isinstance(value, list):
+                return value
+    return []
 
 
 async def get_pihole_top_async(
@@ -275,7 +447,8 @@ async def get_pihole_top_async(
         PiholeTopData with ``top_queries`` and ``top_ads`` dicts.
 
     Raises:
+        urllib.error.HTTPError: On authentication failure or API error.
         urllib.error.URLError: If the Pi-hole API is unreachable.
-        ValueError: If the response is empty or cannot be parsed.
+        ValueError: If the response cannot be parsed.
     """
     return await run_blocking(get_pihole_top, host, port, password, n)

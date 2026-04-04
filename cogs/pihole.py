@@ -47,7 +47,7 @@ class PiholeCog(commands.GroupCog, name="pihole"):
             async with asyncio.timeout(15):
                 await interaction.response.defer(ephemeral=True)
                 pihole_status = await get_pihole_status_async(
-                    settings.pihole_host, settings.pihole_port
+                    settings.pihole_host, settings.pihole_port, settings.pihole_password
                 )
 
             enabled_label = "Enabled" if pihole_status.enabled else "Disabled"
@@ -84,6 +84,14 @@ class PiholeCog(commands.GroupCog, name="pihole"):
             await interaction.followup.send(embed=embed, ephemeral=True)
             logger.debug("Responded to /pihole status command")
 
+        except urllib.error.HTTPError as e:
+            logger.error(f"Pi-hole HTTP error in /pihole status: {e.code} {e.reason}")
+            if e.code == 401:
+                await self._send_followup_error(
+                    interaction, "Authentication failed — check `PIHOLE_PASSWORD` in `.env`."
+                )
+            else:
+                await self._send_followup_error(interaction, f"Pi-hole API error (HTTP {e.code}).")
         except urllib.error.URLError as e:
             logger.error(f"Pi-hole unreachable in /pihole status: {e}")
             await self._send_followup_error(
@@ -134,6 +142,14 @@ class PiholeCog(commands.GroupCog, name="pihole"):
             await interaction.followup.send(embed=embed, ephemeral=True)
             logger.debug("Responded to /pihole enable command")
 
+        except urllib.error.HTTPError as e:
+            logger.error(f"Pi-hole HTTP error in /pihole enable: {e.code} {e.reason}")
+            if e.code == 401:
+                await self._send_followup_error(
+                    interaction, "Authentication failed — check `PIHOLE_PASSWORD` in `.env`."
+                )
+            else:
+                await self._send_followup_error(interaction, f"Pi-hole API error (HTTP {e.code}).")
         except urllib.error.URLError as e:
             logger.error(f"Pi-hole unreachable in /pihole enable: {e}")
             await self._send_followup_error(
@@ -205,6 +221,14 @@ class PiholeCog(commands.GroupCog, name="pihole"):
             await interaction.followup.send(embed=embed, ephemeral=True)
             logger.debug(f"Responded to /pihole disable command (seconds={seconds})")
 
+        except urllib.error.HTTPError as e:
+            logger.error(f"Pi-hole HTTP error in /pihole disable: {e.code} {e.reason}")
+            if e.code == 401:
+                await self._send_followup_error(
+                    interaction, "Authentication failed — check `PIHOLE_PASSWORD` in `.env`."
+                )
+            else:
+                await self._send_followup_error(interaction, f"Pi-hole API error (HTTP {e.code}).")
         except urllib.error.URLError as e:
             logger.error(f"Pi-hole unreachable in /pihole disable: {e}")
             await self._send_followup_error(
@@ -291,6 +315,14 @@ class PiholeCog(commands.GroupCog, name="pihole"):
             await interaction.followup.send(embed=embed, ephemeral=True)
             logger.debug("Responded to /pihole top command")
 
+        except urllib.error.HTTPError as e:
+            logger.error(f"Pi-hole HTTP error in /pihole top: {e.code} {e.reason}")
+            if e.code == 401:
+                await self._send_followup_error(
+                    interaction, "Authentication failed — check `PIHOLE_PASSWORD` in `.env`."
+                )
+            else:
+                await self._send_followup_error(interaction, f"Pi-hole API error (HTTP {e.code}).")
         except urllib.error.URLError as e:
             logger.error(f"Pi-hole unreachable in /pihole top: {e}")
             await self._send_followup_error(
