@@ -126,11 +126,11 @@ def _api_get(host: str, port: int, path: str, sid: str | None = None) -> dict | 
         urllib.error.URLError: If the connection fails or times out.
         ValueError: If the response body is not valid JSON.
     """
+    logger.debug(f"Pi-hole API GET: http://{host}:{port}{path}")
     if sid:
         sep = "&" if "?" in path else "?"
         path = f"{path}{sep}sid={sid}"
     url = f"http://{host}:{port}{path}"
-    logger.debug(f"Pi-hole API GET: http://{host}:{port}{path.split('?sid=')[0]}")
     req = urllib.request.Request(url)  # nosec B310
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
@@ -164,8 +164,8 @@ def _api_post(host: str, port: int, path: str, payload: dict, sid: str) -> dict 
         urllib.error.URLError: If the connection fails or times out.
         ValueError: If the response body is not valid JSON.
     """
-    url = f"http://{host}:{port}{path}?sid={sid}"
     logger.debug(f"Pi-hole API POST: http://{host}:{port}{path}")
+    url = f"http://{host}:{port}{path}?sid={sid}"
     body = json.dumps(payload).encode()
     req = urllib.request.Request(url, data=body, method="POST")  # nosec B310
     req.add_header("Content-Type", "application/json")
@@ -390,8 +390,8 @@ def get_pihole_top(
     """
     sid = _authenticate(host, port, password)
     try:
-        queries_data = _api_get(host, port, f"/api/stats/top_domains?count={n}", sid)
-        blocked_data = _api_get(host, port, f"/api/stats/top_blocked?count={n}", sid)
+        queries_data = _api_get(host, port, f"/api/stats/top_domains?count={n}&blocked=false", sid)
+        blocked_data = _api_get(host, port, f"/api/stats/top_domains?count={n}&blocked=true", sid)
 
         top_queries: dict[str, int] = {}
         for entry in _iter_top_entries(queries_data, ("top_queries", "domains")):

@@ -349,8 +349,8 @@ class TestGetPiholeTop:
         assert result.top_queries == {}
         assert result.top_ads == {}
 
-    def test_query_includes_count_param(self):
-        """API requests include the ?count=N parameter."""
+    def test_query_includes_count_and_blocked_params(self):
+        """Both API requests include count=N and the blocked= parameter."""
         captured: list = []
 
         def fake_urlopen(req, timeout=10):
@@ -362,7 +362,8 @@ class TestGetPiholeTop:
         with patch("urllib.request.urlopen", side_effect=fake_urlopen):
             get_pihole_top("localhost", 80, "admin", n=10)
 
-        assert any("count=10" in url for url in captured)
+        assert any("count=10" in url and "blocked=false" in url for url in captured)
+        assert any("count=10" in url and "blocked=true" in url for url in captured)
 
     def test_raises_http_error_on_auth_failure(self):
         """HTTPError propagates when authentication is rejected."""
