@@ -91,7 +91,7 @@ pull_code() {
     
     # Warn about any other modified or untracked files that will be lost.
     # We exclude .env because it is already backed up above.
-    dirty=$(git status --porcelain | grep -v "^.. \.env")
+    dirty=$(git status --porcelain | grep -v "^.. \.env" || true)
     if [ -n "$dirty" ]; then
         log_warn "The following files will be discarded by git reset:"
         echo "$dirty"
