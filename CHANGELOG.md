@@ -6,6 +6,31 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.7.0] — 2026-04-04
+
+### Added
+- `services/pihole/client.py` — Pi-hole v6 REST API client using `urllib.request` (no new dependencies):
+  - `PiholeStatus` dataclass: enabled flag, total queries, blocked queries, blocked percentage, domains in block list
+  - `PiholeTopData` dataclass: top queried domains and top blocked domains dicts
+  - `_authenticate` / `_delete_session` — session-based auth via `POST /api/auth` and `DELETE /api/auth`; SID passed as a query parameter (`?sid=`) on all subsequent requests
+  - `get_pihole_status(password=None)` / `get_pihole_status_async` — blocking state from `GET /api/dns/blocking`; full query stats from `GET /api/stats/summary` when password is supplied
+  - `enable_pihole` / `enable_pihole_async` — `POST /api/dns/blocking` with `{"blocking": true}` (requires password)
+  - `disable_pihole(seconds)` / `disable_pihole_async` — `POST /api/dns/blocking` with `{"blocking": false, "timer": N|null}` (requires password)
+  - `get_pihole_top(n)` / `get_pihole_top_async` — top allowed domains via `GET /api/stats/top_domains?blocked=false` and top blocked via `?blocked=true` (requires password)
+- `cogs/pihole.py` — Pi-hole Discord command group (`commands.GroupCog`):
+  - `/pihole status` — enabled/disabled state, today's DNS query counts, block list size; no password required for basic state
+  - `/pihole enable` — re-enables ad blocking (requires `PIHOLE_PASSWORD`)
+  - `/pihole disable [seconds]` — disables ad blocking indefinitely or for N seconds (requires `PIHOLE_PASSWORD`)
+  - `/pihole top` — top 5 queried and top 5 blocked domains (requires `PIHOLE_PASSWORD`)
+  - All commands catch `urllib.error.HTTPError` before `URLError`; HTTP 401 shows a clear "check PIHOLE_PASSWORD" message
+- `config/settings.py` — optional `PIHOLE_HOST` (default `localhost`), `PIHOLE_PORT` (default `80`), `PIHOLE_PASSWORD` settings
+- `bot/client.py` — loads `cogs.pihole` on startup
+- `cogs/system.py` — `/help` now discovers `app_commands.Group` entries via `bot.tree.get_commands()` so Pi-hole subcommands appear in the listing
+- `.env.example` — Pi-hole section documenting all three variables
+- `tests/services/pihole/test_client.py` — 30 unit tests covering auth, session lifecycle, all service functions, `_iter_top_entries`, and async wrappers
+
+---
+
 ## [1.6.2] — 2026-04-04
 
 ### Fixed

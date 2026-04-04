@@ -3,7 +3,7 @@
 This roadmap reflects the intended evolution of the project in sequential phases.
 Each phase builds on the previous one and has a clear, verifiable completion criterion.
 
-**Current Status:** Phase 1 is ~50% complete. Core bot infrastructure and system commands are production-ready; RPi extended control commands (temp, reboot, logs, network, Pi-hole) are next.
+**Current Status:** Phase 1 is ~95% complete. Only `/network` remains before Phase 1 closes.
 
 ---
 
@@ -27,8 +27,8 @@ Each phase builds on the previous one and has a clear, verifiable completion cri
 - [x] `cogs/system.py` — `/reboot` RPi reboot with confirmation step
 - [x] `cogs/system.py` — `/logs [lines]` tail journalctl output remotely
 - [ ] `cogs/system.py` — `/network` local IP, public IP, interface info
-- [ ] `services/pihole/client.py` — Pi-hole API client (status, enable, disable, top)
-- [ ] `cogs/pihole.py` — `/pihole status`, `/pihole enable`, `/pihole disable [seconds]`, `/pihole top`
+- [x] `services/pihole/client.py` — Pi-hole API client (status, enable, disable, top)
+- [x] `cogs/pihole.py` — `/pihole status`, `/pihole enable`, `/pihole disable [seconds]`, `/pihole top`
 
 ---
 
