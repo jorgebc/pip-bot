@@ -94,23 +94,24 @@ checkout_branch() {
     log_step "Fetching and checking out branch '${BRANCH}'..."
     cd "$PROJECT_DIR"
 
-    # Backup .env before any git operations
-    if [ -f ".env" ]; then
-        log_info "Backing up .env..."
-        cp .env .env.backup.pre-deploy
-    fi
-
-    # Fetch all branches from origin
-    if ! git fetch origin &> /dev/null; then
+    # Fetch all branches from origin (show errors, suppress progress noise)
+    log_info "Fetching from origin..."
+    if ! git fetch --no-progress origin 2>&1; then
         log_error "Failed to fetch from GitHub. Check your internet connection."
         exit 1
     fi
 
     # Verify the branch exists on origin
-    if ! git ls-remote --exit-code --heads origin "${BRANCH}" &> /dev/null; then
+    if ! git ls-remote --exit-code --heads origin "${BRANCH}" > /dev/null 2>&1; then
         log_error "Branch '${BRANCH}' not found on origin."
         echo "Make sure you have pushed the branch: git push origin ${BRANCH}"
         exit 1
+    fi
+
+    # Backup .env before resetting
+    if [ -f ".env" ]; then
+        log_info "Backing up .env..."
+        cp .env .env.backup.pre-deploy
     fi
 
     # Warn about local changes that will be discarded
