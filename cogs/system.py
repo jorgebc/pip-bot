@@ -407,11 +407,21 @@ class SystemCog(commands.Cog):
                     for cog_name, cog_commands in cogs_with_commands.items():
                         command_lines = []
                         for cmd in cog_commands:
-                            description = cmd.description or "No description available"
-                            # Truncate long descriptions at 80 chars
-                            if len(description) > 80:
-                                description = description[:77] + "..."
-                            command_lines.append(f"`/{cmd.name}` — {description}")
+                            if isinstance(cmd, app_commands.Group):
+                                # Expand group subcommands as /group subcommand
+                                for subcmd in cmd.commands:
+                                    description = subcmd.description or "No description available"
+                                    if len(description) > 80:
+                                        description = description[:77] + "..."
+                                    command_lines.append(
+                                        f"`/{cmd.name} {subcmd.name}` — {description}"
+                                    )
+                            else:
+                                description = cmd.description or "No description available"
+                                # Truncate long descriptions at 80 chars
+                                if len(description) > 80:
+                                    description = description[:77] + "..."
+                                command_lines.append(f"`/{cmd.name}` — {description}")
 
                         if command_lines:
                             embed.add_field(
