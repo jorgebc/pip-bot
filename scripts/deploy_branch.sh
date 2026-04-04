@@ -124,12 +124,14 @@ checkout_branch() {
     fi
 
     # Switch to the target branch and reset to origin
-    if ! git checkout "${BRANCH}" &> /dev/null; then
+    log_info "Checking out '${BRANCH}'..."
+    if ! git checkout -q "${BRANCH}"; then
         log_error "Failed to checkout branch '${BRANCH}'"
         exit 1
     fi
 
-    if ! git reset --hard "origin/${BRANCH}" &> /dev/null; then
+    log_info "Resetting to origin/${BRANCH}..."
+    if ! git reset --hard "origin/${BRANCH}"; then
         log_error "Failed to reset to origin/${BRANCH}"
         exit 1
     fi
