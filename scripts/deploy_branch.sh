@@ -115,7 +115,7 @@ checkout_branch() {
     fi
 
     # Warn about local changes that will be discarded
-    dirty=$(git status --porcelain | grep -v "^.. \.env")
+    dirty=$(git status --porcelain | grep -v "^.. \.env" || true)
     if [ -n "$dirty" ]; then
         log_warn "The following local changes will be discarded:"
         echo "$dirty"
