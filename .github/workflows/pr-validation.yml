@@ -15,14 +15,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Poetry
+        run: pipx install poetry
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: poetry
           cache-dependency-path: poetry.lock
-
-      - name: Install Poetry
-        run: pipx install poetry
 
       - name: Check lockfile
         run: poetry check --lock
