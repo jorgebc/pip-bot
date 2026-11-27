@@ -548,7 +548,7 @@ DISCORD_GUILD_ID=<your-server-id>
 
 ## CI
 
-Every pull request targeting `main` runs `.github/workflows/pr-validation.yml` â€” a single job on `ubuntu-latest` with Python 3.11.
+Every pull request targeting `main` runs `.github/workflows/pr-validation.yml` with Python 3.11 on Ubuntu 22.04 x86_64 and ARM64 runners. The ARM64 runner's glibc baseline is close to Raspberry Pi OS Bookworm and helps catch missing or incompatible wheels before deployment.
 
 | Step | Tool | Purpose |
 |---|---|---|
@@ -557,9 +557,9 @@ Every pull request targeting `main` runs `.github/workflows/pr-validation.yml` â
 | Dependency audit | `pip-audit` | Known CVE detection in dependencies |
 | Security scan | `bandit -r bot/ cogs/ services/ config/ utils/` | Static security analysis |
 
-PRs cannot be merged until all four checks pass.
+Require both `validate` matrix checks to pass before merging: the Ubuntu x86_64 run and the Ubuntu ARM64 run.
 
-Dependabot runs weekly (`pip` ecosystem) and opens PRs against `main` for dependency updates. Those PRs go through the same validation pipeline.
+Dependabot runs weekly for Python (`pip`) and GitHub Actions dependencies, opening PRs against `main`. CI installs from `poetry.lock` and runs the same validation pipeline on each update PR.
 
 ---
 
