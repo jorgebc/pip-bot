@@ -6,6 +6,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- `services/kodi.py` and `/kodi` — allowlisted `start`, `stop`, `restart`, and `status` controls for the Kodi systemd service; access is limited to `ALLOWED_AGENT_IDS` and subprocess execution has a timeout
+- `config/settings.py` — parse and validate `ALLOWED_AGENT_IDS` as Discord user IDs
+- Kodi service and command tests for subprocess arguments, status mapping, authorization, failures, and timeout
+- `.github/workflows/pr-validation.yml` — validate the Poetry lockfile and run checks inside the locked environment on Ubuntu 22.04 x86_64 and ARM64; upgrade setuptools for the audit and skip the local editable `pip-bot` package
+- `pyproject.toml` and `poetry.lock` — constrain supported Python to `>=3.11,<4.0`, lock the complete development tool group, and update vulnerable transitive packages to fixed releases
+- `.github/dependabot.yml` — add weekly GitHub Actions dependency updates alongside Python dependency updates
+
 ## [1.7.0] — 2026-04-04
 
 ### Added

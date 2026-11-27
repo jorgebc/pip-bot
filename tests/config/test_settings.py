@@ -36,6 +36,7 @@ class TestSettingsDataclass:
             discord_token="test-token",
             discord_guild_id=12345,
             log_level="DEBUG",
+            allowed_agent_ids=frozenset({123456789012345678}),
             nas_host="192.168.1.100",
             nas_port=9091,
             nas_user="user",
@@ -45,6 +46,7 @@ class TestSettingsDataclass:
         assert settings.discord_token == "test-token"
         assert settings.discord_guild_id == 12345
         assert settings.log_level == "DEBUG"
+        assert settings.allowed_agent_ids == frozenset({123456789012345678})
         assert settings.nas_host == "192.168.1.100"
         assert settings.nas_port == 9091
         assert settings.nas_user == "user"
@@ -60,6 +62,7 @@ class TestSettingsDataclass:
         assert settings.discord_token == "test-token"
         assert settings.discord_guild_id == 12345
         assert settings.log_level == "INFO"
+        assert settings.allowed_agent_ids == frozenset()
         assert settings.nas_host is None
         assert settings.nas_port is None
         assert settings.nas_user is None
@@ -93,6 +96,7 @@ class TestGetSettings:
             "DISCORD_TOKEN": "test-token",
             "DISCORD_GUILD_ID": "99999",
             "LOG_LEVEL": "DEBUG",
+            "ALLOWED_AGENT_IDS": "123456789012345678, 987654321098765432",
             "NAS_HOST": "192.168.1.1",
             "NAS_PORT": "9091",
             "NAS_USER": "admin",
@@ -107,6 +111,7 @@ class TestGetSettings:
         assert settings.discord_token == "test-token"
         assert settings.discord_guild_id == 99999
         assert settings.log_level == "DEBUG"
+        assert settings.allowed_agent_ids == frozenset({123456789012345678, 987654321098765432})
         assert settings.nas_host == "192.168.1.1"
         assert settings.nas_port == 9091
         assert settings.nas_user == "admin"
@@ -182,6 +187,36 @@ class TestGetSettings:
     def test_get_settings_invalid_nas_port(self, mock_load_dotenv):
         """Test get_settings raises error when NAS_PORT is not an integer."""
         with pytest.raises(ConfigError, match="NAS_PORT must be an integer"):
+            get_settings()
+
+    @patch("config.settings.load_dotenv")
+    @patch.dict(
+        os.environ,
+        {
+            "DISCORD_TOKEN": "test-token",
+            "DISCORD_GUILD_ID": "12345",
+            "ALLOWED_AGENT_IDS": "123456789012345678,not-an-id",
+        },
+        clear=True,
+    )
+    def test_get_settings_invalid_allowed_agent_id(self, mock_load_dotenv):
+        """Test get_settings rejects non-numeric allowlist entries."""
+        with pytest.raises(ConfigError, match="ALLOWED_AGENT_IDS must be a comma-separated"):
+            get_settings()
+
+    @patch("config.settings.load_dotenv")
+    @patch.dict(
+        os.environ,
+        {
+            "DISCORD_TOKEN": "test-token",
+            "DISCORD_GUILD_ID": "12345",
+            "ALLOWED_AGENT_IDS": "0",
+        },
+        clear=True,
+    )
+    def test_get_settings_non_positive_allowed_agent_id(self, mock_load_dotenv):
+        """Test get_settings rejects non-positive allowlist entries."""
+        with pytest.raises(ConfigError, match="ALLOWED_AGENT_IDS must contain only positive"):
             get_settings()
 
     @patch("config.settings.load_dotenv")

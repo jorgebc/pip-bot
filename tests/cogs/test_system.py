@@ -1,5 +1,6 @@
 """Tests for cogs/system.py module."""
 
+import subprocess
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
@@ -384,6 +385,112 @@ class TestSystemCogLogs:
         interaction.followup.send.assert_called_once()
         sent_msg = interaction.followup.send.call_args[0][0]
         assert "journalctl" in sent_msg
+
+
+class TestSystemCogKodi:
+    """Test the /kodi command authorization and user-facing responses."""
+
+    _KODI_GLOBALS = SystemCog.kodi.callback.__globals__
+
+    @staticmethod
+    def _interaction(user_id):
+        interaction = AsyncMock(spec=discord.Interaction)
+        interaction.user = MagicMock(id=user_id)
+        interaction.response.send_message = AsyncMock()
+        interaction.response.defer = AsyncMock()
+        interaction.followup.send = AsyncMock()
+        return interaction
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("allowed_user_ids", [frozenset(), frozenset({123})])
+    async def test_unauthorized_user_is_denied_ephemerally(self, allowed_user_ids):
+        """A user outside ALLOWED_AGENT_IDS, including an empty list, is denied."""
+        interaction = self._interaction(42)
+        service = AsyncMock(return_value="")
+        settings = MagicMock(allowed_agent_ids=allowed_user_ids)
+        with patch.dict(
+            self._KODI_GLOBALS,
+            {
+                "get_settings": MagicMock(return_value=settings),
+                "control_kodi_service_async": service,
+            },
+        ):
+            cog = SystemCog(MagicMock())
+            await cog.kodi.callback(cog, interaction, "start")
+
+        interaction.response.send_message.assert_awaited_once_with(
+            "❌ No tienes permiso para usar este comando.",
+            ephemeral=True,
+        )
+        interaction.response.defer.assert_not_awaited()
+        service.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_authorized_user_can_check_status(self):
+        """An allowlisted user receives a private readable service status."""
+        interaction = self._interaction(123)
+        service = AsyncMock(return_value="activo")
+        settings = MagicMock(allowed_agent_ids=frozenset({123}))
+        with patch.dict(
+            self._KODI_GLOBALS,
+            {
+                "get_settings": MagicMock(return_value=settings),
+                "control_kodi_service_async": service,
+            },
+        ):
+            cog = SystemCog(MagicMock())
+            await cog.kodi.callback(cog, interaction, "status")
+
+        service.assert_awaited_once_with("status")
+        interaction.response.defer.assert_awaited_once_with(ephemeral=True)
+        interaction.followup.send.assert_awaited_once_with(
+            "Estado de Kodi: activo.",
+            ephemeral=True,
+        )
+
+    @pytest.mark.asyncio
+    async def test_systemctl_failure_returns_clear_message(self):
+        """A failed systemctl call does not expose subprocess stderr."""
+        interaction = self._interaction(123)
+        service = AsyncMock(
+            side_effect=subprocess.CalledProcessError(
+                returncode=1,
+                cmd=["sudo", "/usr/bin/systemctl", "start", "kodi"],
+                stderr="sensitive system detail",
+            )
+        )
+        settings = MagicMock(allowed_agent_ids=frozenset({123}))
+        with patch.dict(
+            self._KODI_GLOBALS,
+            {
+                "get_settings": MagicMock(return_value=settings),
+                "control_kodi_service_async": service,
+            },
+        ):
+            cog = SystemCog(MagicMock())
+            await cog.kodi.callback(cog, interaction, "start")
+
+        response = interaction.followup.send.call_args.args[0]
+        assert "código 1" in response
+        assert "sensitive system detail" not in response
+
+    @pytest.mark.asyncio
+    async def test_timeout_returns_clear_message(self):
+        """A systemctl timeout is handled without exposing an exception."""
+        interaction = self._interaction(123)
+        service = AsyncMock(side_effect=subprocess.TimeoutExpired(cmd="systemctl", timeout=10))
+        settings = MagicMock(allowed_agent_ids=frozenset({123}))
+        with patch.dict(
+            self._KODI_GLOBALS,
+            {
+                "get_settings": MagicMock(return_value=settings),
+                "control_kodi_service_async": service,
+            },
+        ):
+            cog = SystemCog(MagicMock())
+            await cog.kodi.callback(cog, interaction, "restart")
+
+        assert "tiempo límite" in interaction.followup.send.call_args.args[0]
 
 
 class TestSystemCogInitialization:
