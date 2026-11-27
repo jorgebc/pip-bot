@@ -202,7 +202,7 @@ pip-bot/
 
 These are the concrete commands the bot must implement in Phase 1. They serve as the development anchor — all architectural decisions are validated against these.
 
-**Status: 9 of 10 commands implemented. Only `/network` remains. NAS integration (commands 11–13) is Phase 2.**
+**Status: 10 of 11 commands implemented. Only `/network` remains. NAS integration is Phase 2.**
 
 ### `/ping`
 ✅ **Implemented.** Responds with `Pong!` and current latency. Used to verify the bot is alive.
@@ -221,6 +221,11 @@ These are the concrete commands the bot must implement in Phase 1. They serve as
 
 ### `/logs [lines]`
 ✅ **Implemented.** Returns the last N lines (default 20, max 50) from the bot's systemd journal (`journalctl -u pip-bot`). Useful for remote diagnosis without SSH access. Output is shown in a code block; long output is truncated at the Discord 2000-character limit.
+
+### `/kodi <action>`
+✅ **Implemented.** Controls the `kodi` systemd service with `start`, `stop`, `restart`, or `status`. Only Discord user IDs listed in `ALLOWED_AGENT_IDS` may invoke it; when the variable is unset or empty, access is denied to everyone. Uses `sudo /usr/bin/systemctl` with a fixed action allowlist and a subprocess timeout.
+
+The bot synchronizes slash commands to the configured guild automatically on startup. Restart the bot after deploying this command; no manual sync command is needed.
 
 ### `/network`
 ⏳ **Pending.** Returns the current network state of the Raspberry Pi: local IP address, public IP address, and number of connected network interfaces. Uses `psutil` for local info and a lightweight external call for public IP.
@@ -516,6 +521,7 @@ The full roadmap with phases, milestones, and completion criteria lives in [`ROA
 | `DISCORD_TOKEN` | ✅ Phase 1+ | — | Bot token from Discord Developer Portal |
 | `DISCORD_GUILD_ID` | ✅ Phase 1+ | — | Your server ID (enables fast slash command registration) |
 | `LOG_LEVEL` | ❌ | `INFO` | Logging level: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
+| `ALLOWED_AGENT_IDS` | ❌ | — | Comma-separated Discord user IDs allowed to use `/kodi`; unset/empty denies access |
 | `PIHOLE_HOST` | ❌ | `localhost` | Pi-hole hostname or IP; override if Pi-hole is not on the same host |
 | `PIHOLE_PORT` | ❌ | `80` | Pi-hole HTTP port |
 | `PIHOLE_PASSWORD` | ❌ | — | Web admin password; required for `/pihole enable`, `disable`, `top` |
@@ -524,11 +530,11 @@ The full roadmap with phases, milestones, and completion criteria lives in [`ROA
 | `NAS_USER` | ⏳ Phase 2 | — | Transmission username |
 | `NAS_PASSWORD` | ⏳ Phase 2 | — | Transmission password |
 | `ACTIONS_CHANNEL_ID` | ⏳ Phase 3 | — | Discord channel ID for agent commands; required for Phase 3+ |
-| `ALLOWED_AGENT_IDS` | ⏳ Phase 3 | — | Comma-separated Discord user/bot IDs allowed to send actions |
 
 **Notes:**
 - Copy `.env.example` to `.env` and fill in required values
 - **Never commit `.env` to Git** — it contains secrets
+- `/kodi` is unavailable until `ALLOWED_AGENT_IDS` contains at least one valid Discord user ID
 - NAS variables: if `NAS_HOST` is set, all four `NAS_*` variables must be set (enforced by `config/settings.py`)
 - Phase 2–3 variables are optional in Phase 1; validation enforces that all-or-nothing rule for each section
 

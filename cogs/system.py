@@ -1,4 +1,4 @@
-"""System commands: /ping, /status, /help, /temp, /reboot."""
+"""System commands: /ping, /status, /help, /temp, /reboot, /kodi."""
 
 import asyncio
 import subprocess
@@ -8,6 +8,8 @@ from discord import app_commands
 from discord.ext import commands
 
 from cogs._views import RebootConfirmView
+from config import get_settings
+from services.kodi import control_kodi_service_async
 from services.system import (
     get_cpu_temperature_async,
     get_journal_logs_async,
@@ -373,6 +375,84 @@ class SystemCog(commands.Cog):
                 )
             except Exception as followup_error:
                 logger.error(f"Failed to send error response: {followup_error}")
+
+    @app_commands.command(name="kodi", description="Control the Kodi systemd service")
+    @app_commands.describe(action="Action to perform on Kodi")
+    @app_commands.choices(
+        action=[
+            app_commands.Choice(name="start", value="start"),
+            app_commands.Choice(name="stop", value="stop"),
+            app_commands.Choice(name="restart", value="restart"),
+            app_commands.Choice(name="status", value="status"),
+        ]
+    )
+    @app_commands.checks.cooldown(1, 30)
+    async def kodi(self, interaction: discord.Interaction, action: str) -> None:
+        """Control Kodi after checking the invoking user's allowlist membership.
+
+        Args:
+            interaction: Discord interaction object.
+            action: One of ``start``, ``stop``, ``restart``, or ``status``.
+        """
+        allowed_user_ids = get_settings().allowed_agent_ids
+        if interaction.user.id not in allowed_user_ids:
+            logger.warning("User %s was denied access to /kodi", interaction.user.id)
+            await interaction.response.send_message(
+                "❌ No tienes permiso para usar este comando.",
+                ephemeral=True,
+            )
+            return
+
+        try:
+            await interaction.response.defer(ephemeral=True)
+            result = await control_kodi_service_async(action)
+            if action == "status":
+                message = f"Estado de Kodi: {result}."
+            else:
+                action_messages = {
+                    "start": "Kodi iniciado correctamente.",
+                    "stop": "Kodi detenido correctamente.",
+                    "restart": "Kodi reiniciado correctamente.",
+                }
+                message = action_messages[action]
+            await interaction.followup.send(message, ephemeral=True)
+            logger.info("Responded to /kodi %s", action)
+        except ValueError:
+            logger.warning("Rejected invalid /kodi action: %s", action)
+            await interaction.followup.send(
+                "❌ Acción de Kodi no válida.",
+                ephemeral=True,
+            )
+        except subprocess.CalledProcessError as error:
+            logger.error("systemctl failed for /kodi %s (exit %s)", action, error.returncode)
+            await interaction.followup.send(
+                f"❌ No se pudo ejecutar la acción de Kodi (código {error.returncode}).",
+                ephemeral=True,
+            )
+        except FileNotFoundError:
+            logger.error("sudo or /usr/bin/systemctl not found for /kodi")
+            await interaction.followup.send(
+                "❌ No se pudo encontrar `sudo` o `/usr/bin/systemctl`.",
+                ephemeral=True,
+            )
+        except subprocess.TimeoutExpired:
+            logger.error("Timeout executing /kodi %s", action)
+            await interaction.followup.send(
+                "❌ La operación de Kodi superó el tiempo límite.",
+                ephemeral=True,
+            )
+        except RuntimeError:
+            logger.error("Unexpected systemctl status returned for /kodi")
+            await interaction.followup.send(
+                "❌ systemctl devolvió un estado inesperado para Kodi.",
+                ephemeral=True,
+            )
+        except OSError as error:
+            logger.error("Could not execute /kodi %s: %s", action, error, exc_info=True)
+            await interaction.followup.send(
+                "❌ No se pudo ejecutar el comando de systemd.",
+                ephemeral=True,
+            )
 
     @app_commands.command(name="help", description="Show all available commands")
     @app_commands.checks.cooldown(1, 60)

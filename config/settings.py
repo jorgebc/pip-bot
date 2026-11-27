@@ -20,6 +20,7 @@ class Settings:
     # Phase 1 - Optional
     log_level: str = "INFO"
     startup_channel_id: int | None = None
+    allowed_agent_ids: frozenset[int] = frozenset()
 
     # Phase 1+ - Optional (Pi-hole integration)
     pihole_host: str = "localhost"
@@ -92,6 +93,16 @@ def get_settings() -> Settings:
                 f"STARTUP_CHANNEL_ID must be an integer, got: {startup_channel_id_str}"
             )
 
+    allowed_agent_ids_raw = os.getenv("ALLOWED_AGENT_IDS", "")
+    try:
+        allowed_agent_ids = frozenset(
+            int(user_id.strip()) for user_id in allowed_agent_ids_raw.split(",") if user_id.strip()
+        )
+    except ValueError:
+        raise ConfigError("ALLOWED_AGENT_IDS must be a comma-separated list of Discord IDs")
+    if any(user_id <= 0 for user_id in allowed_agent_ids):
+        raise ConfigError("ALLOWED_AGENT_IDS must contain only positive Discord IDs")
+
     # Optional Phase 1+ variables — Pi-hole integration
     pihole_host = os.getenv("PIHOLE_HOST", "localhost")
     pihole_port_str = os.getenv("PIHOLE_PORT", "80")
@@ -129,6 +140,7 @@ def get_settings() -> Settings:
         discord_guild_id=discord_guild_id,
         log_level=log_level,
         startup_channel_id=startup_channel_id,
+        allowed_agent_ids=allowed_agent_ids,
         pihole_host=pihole_host,
         pihole_port=pihole_port,
         pihole_password=pihole_password,

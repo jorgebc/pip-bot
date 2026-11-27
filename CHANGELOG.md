@@ -6,6 +6,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- `services/kodi.py` and `/kodi` — allowlisted `start`, `stop`, `restart`, and `status` controls for the Kodi systemd service; access is limited to `ALLOWED_AGENT_IDS` and subprocess execution has a timeout
+- `config/settings.py` — parse and validate `ALLOWED_AGENT_IDS` as Discord user IDs
+- Kodi service and command tests for subprocess arguments, status mapping, authorization, failures, and timeout
+
 ## [1.7.0] — 2026-04-04
 
 ### Added
