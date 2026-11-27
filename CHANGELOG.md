@@ -12,6 +12,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - `services/kodi.py` and `/kodi` — allowlisted `start`, `stop`, `restart`, and `status` controls for the Kodi systemd service; access is limited to `ALLOWED_AGENT_IDS` and subprocess execution has a timeout
 - `config/settings.py` — parse and validate `ALLOWED_AGENT_IDS` as Discord user IDs
 - Kodi service and command tests for subprocess arguments, status mapping, authorization, failures, and timeout
+- `.github/workflows/pr-validation.yml` — install a patched setuptools for the dependency audit and skip the local editable `pip-bot` package, which is not published on PyPI
 
 ## [1.7.0] — 2026-04-04
 

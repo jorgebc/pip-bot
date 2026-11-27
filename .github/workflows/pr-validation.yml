@@ -18,7 +18,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install .
+          pip install -e .
           pip install \
             "pytest>=9.0.2,<10.0.0" \
             "pytest-asyncio>=1.3.0,<2.0.0" \
@@ -27,6 +27,7 @@ jobs:
             "mypy>=1.0,<2.0" \
             "bandit[toml]>=1.8,<2.0" \
             "pip-audit>=2.9,<3.0"
+          pip install --upgrade "setuptools>=84.1.0"
 
       - name: Lint
         run: ruff check .
@@ -38,7 +39,7 @@ jobs:
         run: pytest
 
       - name: Dependency audit
-        run: pip-audit
+        run: pip-audit --skip-editable
 
       - name: Security scan
         run: bandit -c pyproject.toml -r bot/ cogs/ services/ config/ utils/ -q
